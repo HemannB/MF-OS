@@ -1,0 +1,21 @@
+# Build artifacts
+*.o
+*.bin
+*.elf
+*.iso
+*.kernel
+*.img
+
+# ISO staging (gerado pelo make)
+iso/boot/*.kernel
+
+# Editor
+.vscode/ipch/
+.vscode/.browse.VC.db*
+_docs/
+
+# macOS
+.DS_Store
+
+# Linux temp files
+*~

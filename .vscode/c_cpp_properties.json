@@ -1,0 +1,31 @@
+{
+    "configurations": [
+        {
+            "name": "MF-0S Kernel (x86 freestanding)",
+            "includePath": [
+                "${workspaceFolder}/**"
+            ],
+            "defines": [
+                "__i386__",
+                "__KERNEL__"
+            ],
+            "compilerPath": "/usr/bin/gcc",
+            "compilerArgs": [
+                "-m32",
+                "-ffreestanding",
+                "-nostdlib",
+                "-fno-builtin"
+            ],
+            "cStandard": "gnu99",
+            "cppStandard": "gnu++17",
+            "intelliSenseMode": "linux-gcc-x86",
+            "browse": {
+                "path": [
+                    "${workspaceFolder}"
+                ],
+                "limitSymbolsToIncludedHeaders": true
+            }
+        }
+    ],
+    "version": 4
+}
