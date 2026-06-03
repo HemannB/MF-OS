@@ -15,3 +15,12 @@ align 4 ; Multiboot exige que o header esteja alinhado a 4 bytes
     dd MB_MAGIC 
     dd MB_FLAGS
     dd MB_CHECKSUM
+
+section .bss ; variáveis globais não inicializadas (inicializadas com zero por padrão)
+    ; o stack pointer (ESP) precisa apontar para um endereço válido, mesmo que o kernel ainda não tenha sido carregado
+    ; isso é necessário para que o GRUB possa empilhar os argumentos do kernel e outras informações importantes
+align 16 ; alinhamento de 16 bytes para o stack pointer (ESP) — requisito do protocolo Multiboot
+
+stack_bottom: ; marca o início da pilha do kernel
+    resb 16384 ; reserva 16KB para a pilha do kernel (tamanho arbitrário, pode ser ajustado conforme necessário)
+stack_top: ; marca o topo da pilha do kernel (stack grows downwards)
