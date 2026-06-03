@@ -32,3 +32,10 @@ extern kernel_main ; declara a função kernel_main, que será definida em kerne
 _start: ; o GRUB já terá carregado o kernel na memória e passado o controle para este ponto de entrada
     mov esp, stack_top ; inicializa o stack pointer (ESP) para o topo da pilha do kernel
     call kernel_main ; chama a função kernel_main, que é onde a execução do kernel realmente começa 
+    
+    cli ; desabilita interrupções para evitar comportamentos indesejados após o kernel_main retornar (embora kernel_main não deva retornar...)
+.hang: ; loop infinito para manter o kernel rodando
+    hlt ; instrucao de halt para economizar energia enquanto o kernel está "parado"
+    jmp .hang ; repete o loop
+
+    
