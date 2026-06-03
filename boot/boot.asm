@@ -24,3 +24,11 @@ align 16 ; alinhamento de 16 bytes para o stack pointer (ESP) — requisito do p
 stack_bottom: ; marca o início da pilha do kernel
     resb 16384 ; reserva 16KB para a pilha do kernel (tamanho arbitrário, pode ser ajustado conforme necessário)
 stack_top: ; marca o topo da pilha do kernel (stack grows downwards)
+
+section .text ; seção de código executável
+global _start ; ponto de entrada do kernel, o GRUB vai pular para esse endereço após carregar o kernel na memória
+extern kernel_main ; declara a função kernel_main, que será definida em kernel.c e será o ponto de entrada principal do kernel após a inicialização
+
+_start: ; o GRUB já terá carregado o kernel na memória e passado o controle para este ponto de entrada
+    mov esp, stack_top ; inicializa o stack pointer (ESP) para o topo da pilha do kernel
+    call kernel_main ; chama a função kernel_main, que é onde a execução do kernel realmente começa 
