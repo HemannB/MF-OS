@@ -5,6 +5,7 @@
 #define VGA_ADDR  ((volatile uint16_t*) 0xB8000) // Buffer de vídeo para texto 
 #define VGA_COLS  80 // Número de colunas 
 #define VGA_ROWS  25 // Número de linhas
+#define CMD_MAX 128 // Tamanho máximo do comando para o shell
 
 // Cores do VGA
 typedef enum {
@@ -126,4 +127,90 @@ char kb_getchar(void) {
     if (sc & 0x80) return 0; // Ignora scancodes de liberação de tecla (bit 7 indica isso)
     if (sc < sizeof(sc_ascii)) return sc_ascii[sc]; // Converte o scancode para um caracter ASCII usando a tabela de conversão
     return 0;
+}
+
+// Função auxiliar para comparar duas strings, usada para implementar comandos simples no shell
+static int str_eq(const char *a, const char *b) {
+    while (*a && *b) // Compara os caracteres de ambas as strings até encontrar um terminador nulo
+        if (*a++ != *b++) return 0; // Se os caracteres diferirem, retorna 0 (falso)
+    return *a == *b;
+}
+
+// Comando simples para limpar a tela do terminal, redefinindo o cursor para a posição inicial e re-inicializando o terminal
+static void cmd_clear(void) {
+    term_row = 0;
+    term_col = 0;
+    term_init();
+}
+
+// Comando simples para exibir informações sobre comandos disponíveis, usando cores para destacar o título e os comandos
+static void cmd_help(void) {
+    term_set_color(VGA_CYAN, VGA_BLACK);
+    term_println("Comandos disponiveis:");
+    term_set_color(VGA_LIGHT_GREY, VGA_BLACK);
+    term_println("  help    -- esta mensagem");
+    term_println("  about   -- sobre o MF-0S");
+    term_println("  clear   -- limpa a tela");
+    term_println("  halt    -- desliga");
+}
+
+// Comando simples para exibir informações sobre o sistema operacional, usando cores para destacar o título e o autor
+static void cmd_about(void) {
+    term_println("MF-0S 'MyFucking-OS': um sistema operacional minimalista escrito em C");
+    term_println("Desenvolvido para fins educacionais e de aprendizado");
+    term_set_color(VGA_LIGHT_RED, VGA_BLACK);
+    term_println("Feito com café e muita procrastinação de tarefas importantes por Bruno Hemann");
+}
+
+// Função principal do shell, que exibe um prompt e processa os comandos digitados pelo usuário em um loop infinito
+static void shell_run(void) {
+    char buf[CMD_MAX]; // Buffer para armazenar o comando digitado pelo usuário, com um tamanho máximo definido por CMD_MAX
+
+    while (1) {
+        term_set_color(VGA_LIGHT_GREEN, VGA_BLACK);
+        term_print("MF-0S> ");
+        term_set_color(VGA_WHITE, VGA_BLACK);
+        int len = 0;
+        while (1) { // Loop para ler caracteres do teclado até que o usuário pressione Enter, armazenando-os no buffer e lidando com backspace
+            char c = kb_getchar();
+            if (!c) continue; // Ignora caracteres inválidos (como scancodes de liberação de tecla)
+
+            if (c == '\n') {
+                term_putchar('\n');
+                buf[len] = '\0';
+                break;
+            }
+            if (c == '\b' && len > 0) {
+                len--;
+                term_putchar('\b');
+                continue;
+            }
+            if (len < CMD_MAX - 1) {
+                buf[len++] = c;
+                term_putchar(c);
+            }
+        }
+        if (len == 0) continue; // Se o usuário apenas pressionou Enter sem digitar um comando, exibe o prompt novamente
+        // Processa o comando digitado pelo usuário, comparando-o com os comandos disponíveis e executando a função correspondente
+        if      (str_eq(buf, "help"))  cmd_help();
+        else if (str_eq(buf, "about")) cmd_about();
+        else if (str_eq(buf, "clear")) cmd_clear();
+        else if (str_eq(buf, "halt"))  {
+            term_println("Ate logo.");
+            __asm__ volatile ("hlt");
+        }
+        else {
+            // Se o comando não for reconhecido, exibe uma mensagem de erro em vermelho
+            term_set_color(VGA_LIGHT_RED, VGA_BLACK);
+            term_print("Comando nao encontrado: ");
+            term_println(buf);
+            term_set_color(VGA_LIGHT_GREY, VGA_BLACK);
+        }
+    }
+}
+
+// Função principal do kernel, que inicializa o terminal e inicia o shell para interagir com o usuário
+void kernel_main(void) {
+    term_init();
+    shell_run();
 }
