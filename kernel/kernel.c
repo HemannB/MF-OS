@@ -99,3 +99,31 @@ void term_println(const char *s) {
     term_putchar('\n');
 }
 
+// Função para ler um byte de uma porta de E/S usando a instrução inb do x86
+static inline uint8_t inb(uint16_t port) {
+    uint8_t val;
+    __asm__ volatile (
+        "inb %1, %0"        // lê da porta %1 para o registrador %0
+        : "=a"(val)       // output: variável 'val' recebe registrador AL (parte do EAX)
+        : "Nd"(port)        // input: 'port' vai para DX (registrador D)
+    );
+    return val;
+}
+
+// Tabela simplificada de conversão do scancode da tecla para um caracter ACII (sem considerar telcas de escape como Shift, Ctrl, etc.)
+static const char sc_ascii[] = {
+    0,  0,  '1','2','3','4','5','6','7','8','9','0','-','=', 0,  0,
+    'q','w','e','r','t','y','u','i','o','p','[',']','\n', 0,
+    'a','s','d','f','g','h','j','k','l',';','\'','`',  0, '\\',
+    'z','x','c','v','b','n','m',',','.','/',  0,  '*', 0, ' '
+};
+
+// Função para ler um caracter do teclado usando o controlador de teclado do PC (porta 0x60 para dados e 0x64 para status)
+char kb_getchar(void) {
+    uint8_t sc;
+    do { sc = inb(0x64); } while (!(sc & 0x01)); // Espera até que haja um scancode disponível (bit 0 do status indica isso)
+    sc = inb(0x60); // Lê o scancode da porta de dados do teclado
+    if (sc & 0x80) return 0; // Ignora scancodes de liberação de tecla (bit 7 indica isso)
+    if (sc < sizeof(sc_ascii)) return sc_ascii[sc]; // Converte o scancode para um caracter ASCII usando a tabela de conversão
+    return 0;
+}
