@@ -64,3 +64,38 @@ static void term_scroll(void) {
     /* reposiciona o cursor na última linha, agora vazia */
     term_row = VGA_ROWS - 1;
 }
+
+// Função para escrever um caractere no terminal, lidando com caracteres de controle como nova linha, rowback e backspace
+void term_putchar(char c) {
+    // Lida com caracteres de controle: nova linha, retorno de carro e backspace
+    if (c == '\n') {
+        term_col = 0;
+        if (++term_row == VGA_ROWS) term_scroll();
+        return;
+    }
+    if (c == '\r') { term_col = 0; return; }
+    if (c == '\b' && term_col > 0) {
+        term_col--;
+        VGA_ADDR[term_row * VGA_COLS + term_col] = vga_entry(' ', term_color);
+        return;
+    }
+
+    // Escreve o caractere no buffer de vídeo e avança o cursor
+    VGA_ADDR[term_row * VGA_COLS + term_col] = vga_entry(c, term_color);
+    if (++term_col == VGA_COLS) {
+        term_col = 0;
+        if (++term_row == VGA_ROWS) term_scroll();
+    }
+}
+
+// Função para imprimir uma string no terminal, caractere por caractere
+void term_print(const char *s) {
+    while (*s) term_putchar(*s++);
+}
+
+// Função para imprimir uma string seguida de uma nova linha
+void term_println(const char *s) {
+    term_print(s);
+    term_putchar('\n');
+}
+
