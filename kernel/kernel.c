@@ -113,7 +113,7 @@ static inline uint8_t inb(uint16_t port) {
 
 // Tabela simplificada de conversão do scancode da tecla para um caracter ACII (sem considerar telcas de escape como Shift, Ctrl, etc.)
 static const char sc_ascii[] = {
-    0,  0,  '1','2','3','4','5','6','7','8','9','0','-','=', 0,  0,
+    0,  0,  '1','2','3','4','5','6','7','8','9','0','-','=', '\b',  0,
     'q','w','e','r','t','y','u','i','o','p','[',']','\n', 0,
     'a','s','d','f','g','h','j','k','l',';','\'','`',  0, '\\',
     'z','x','c','v','b','n','m',',','.','/',  0,  '*', 0, ' '
@@ -159,7 +159,7 @@ static void cmd_about(void) {
     term_println("MF-0S 'MyFucking-OS': um sistema operacional minimalista escrito em C");
     term_println("Desenvolvido para fins educacionais e de aprendizado");
     term_set_color(VGA_LIGHT_RED, VGA_BLACK);
-    term_println("Feito com café e muita procrastinação de tarefas importantes por Bruno Hemann");
+    term_println("Feito com cafe e muita procrastinacao de tarefas importantes por Bruno Hemann");
 }
 
 // Função principal do shell, que exibe um prompt e processa os comandos digitados pelo usuário em um loop infinito
