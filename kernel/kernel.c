@@ -137,6 +137,21 @@ static void cmd_about(void) {
     term_println("Feito com cafe e muita procrastinacao de tarefas importantes por Bruno Hemann");
 }
 
+static void splash(void) {
+    term_set_color(VGA_LIGHT_RED, VGA_BLACK);
+    term_println("    __  ___ ______       ____    _____  ");
+    term_println("   /  |/  // ____/      / __ \\ / ___/  ");
+    term_println("  / /|_/ // /_  ____   / / / / \\__ \\   ");
+    term_println(" / /  / // __/ /____/ / /_/ /___/ /   ");
+    term_println("/_/  /_//_/          \\____//____/    ");
+    term_putchar('\n');
+    term_set_color(VGA_DARK_GREY, VGA_BLACK);
+    term_println("  MyFuckingOS - Developed by Bruno Hemann");
+    term_println("  x86 32-bit kernel");
+    term_putchar('\n');
+    term_set_color(VGA_LIGHT_GREY, VGA_BLACK);
+}
+
 // Função principal do shell, que exibe um prompt e processa os comandos digitados pelo usuário em um loop infinito
 static void shell_run(void) {
     char buf[CMD_MAX]; // Buffer para armazenar o comando digitado pelo usuário, com um tamanho máximo definido por CMD_MAX
@@ -144,7 +159,7 @@ static void shell_run(void) {
     while (1) {
         term_set_color(VGA_LIGHT_GREEN, VGA_BLACK);
         term_print("MF-0S> ");
-        term_set_color(VGA_WHITE, VGA_BLACK);
+        term_set_color(VGA_LIGHT_CYAN, VGA_BLACK);
         int len = 0;
         while (1) { // Loop para ler caracteres do teclado até que o usuário pressione Enter, armazenando-os no buffer e lidando com backspace
             char c = kb_getchar();
@@ -195,5 +210,6 @@ void kernel_main(void) {
     isr_init();
     term_init();
     __asm__ volatile ("sti");
+    splash();
     shell_run();
 }
