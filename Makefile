@@ -16,7 +16,7 @@ CFLAGS  = -m32 -std=gnu99 -ffreestanding -O2 -Wall -Wextra \
 ASFLAGS = -f elf32 # diz ao NASM para gerar um arquivo objeto no formato ELF de 32-bit
 LDFLAGS = -m elf_i386 -T linker.ld # diz ao linker para gerar um executável ELF de 32-bit e -T linker.ld usa o linker script
 
-OBJ    = boot/boot.o kernel/kernel.o # lista de arquivos objeto
+OBJ = boot/boot.o kernel/kernel.o kernel/gdt.o kernel/gdt_flush.o # lista de arquivos objeto
 KERNEL = mf0s.kernel # nome do arquivo do kernel
 ISO    = mf0s.iso # nome do arquivo ISO final
 

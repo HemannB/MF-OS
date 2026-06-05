@@ -21,4 +21,6 @@ typedef struct {
 
 void gdt_init(void); // Função para inicializar a GDT
 
+void gdt_flush(uint32_t gdt_ptr); // Função em assembly para carregar a GDT na CPU com a instrução lgdt e recarregar os registradores de segmento.
+
 #endif
