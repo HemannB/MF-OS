@@ -2,6 +2,7 @@
 #include <stddef.h>
 #include "gdt.h"
 #include "idt.h"
+#include "pic.h"
 
 // Definições para o driver de terminal VGA
 #define VGA_ADDR  ((volatile uint16_t*) 0xB8000) // Buffer de vídeo para texto 
@@ -214,9 +215,11 @@ static void shell_run(void) {
 // Função principal do kernel, que inicializa o terminal e inicia o shell para interagir com o usuário
 // Att: A função gdt_init() é chamada para configurar a Global Descriptor Table (GDT) antes de inicializar o terminal e o shell, garantindo que o sistema esteja em um estado adequado para execução.
 // Att2: A função idt_init() é chamada para configurar a Interrupt Descriptor Table (IDT) antes de inicializar o terminal e o shell, garantindo que o sistema possa lidar com interrupções corretamente.
+// Att3: A função pic_init() é chamada para configurar o Programmable Interrupt Controller (PIC) antes de inicializar o terminal e o shell, garantindo que as interrupções sejam remapeadas e possam ser gerenciadas adequadamente.
 void kernel_main(void) {
     gdt_init();
     idt_init();
+    pic_init();
     term_init();
     shell_run();
 }
