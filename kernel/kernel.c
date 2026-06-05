@@ -3,6 +3,7 @@
 #include "gdt.h"
 #include "idt.h"
 #include "pic.h"
+#include "isr.h"
 
 // Definições para o driver de terminal VGA
 #define VGA_ADDR  ((volatile uint16_t*) 0xB8000) // Buffer de vídeo para texto 
@@ -103,35 +104,6 @@ void term_println(const char *s) {
     term_putchar('\n');
 }
 
-// Função para ler um byte de uma porta de E/S usando a instrução inb do x86
-static inline uint8_t inb(uint16_t port) {
-    uint8_t val;
-    __asm__ volatile (
-        "inb %1, %0"        // lê da porta %1 para o registrador %0
-        : "=a"(val)       // output: variável 'val' recebe registrador AL (parte do EAX)
-        : "Nd"(port)        // input: 'port' vai para DX (registrador D)
-    );
-    return val;
-}
-
-// Tabela simplificada de conversão do scancode da tecla para um caracter ACII (sem considerar telcas de escape como Shift, Ctrl, etc.)
-static const char sc_ascii[] = {
-    0,  0,  '1','2','3','4','5','6','7','8','9','0','-','=', '\b',  0,
-    'q','w','e','r','t','y','u','i','o','p','[',']','\n', 0,
-    'a','s','d','f','g','h','j','k','l',';','\'','`',  0, '\\',
-    'z','x','c','v','b','n','m',',','.','/',  0,  '*', 0, ' '
-};
-
-// Função para ler um caracter do teclado usando o controlador de teclado do PC (porta 0x60 para dados e 0x64 para status)
-char kb_getchar(void) {
-    uint8_t sc;
-    do { sc = inb(0x64); } while (!(sc & 0x01)); // Espera até que haja um scancode disponível (bit 0 do status indica isso)
-    sc = inb(0x60); // Lê o scancode da porta de dados do teclado
-    if (sc & 0x80) return 0; // Ignora scancodes de liberação de tecla (bit 7 indica isso)
-    if (sc < sizeof(sc_ascii)) return sc_ascii[sc]; // Converte o scancode para um caracter ASCII usando a tabela de conversão
-    return 0;
-}
-
 // Função auxiliar para comparar duas strings, usada para implementar comandos simples no shell
 static int str_eq(const char *a, const char *b) {
     while (*a && *b) // Compara os caracteres de ambas as strings até encontrar um terminador nulo
@@ -200,8 +172,7 @@ static void shell_run(void) {
         else if (str_eq(buf, "clear")) cmd_clear();
         else if (str_eq(buf, "halt"))  {
             term_println("Ate logo.");
-            __asm__ volatile ("hlt");
-        }
+            __asm__ volatile ("outb %0, %1" : : "a"((uint8_t)0x00), "Nd"((uint16_t)0xf4));        }
         else {
             // Se o comando não for reconhecido, exibe uma mensagem de erro em vermelho
             term_set_color(VGA_LIGHT_RED, VGA_BLACK);
@@ -216,10 +187,13 @@ static void shell_run(void) {
 // Att: A função gdt_init() é chamada para configurar a Global Descriptor Table (GDT) antes de inicializar o terminal e o shell, garantindo que o sistema esteja em um estado adequado para execução.
 // Att2: A função idt_init() é chamada para configurar a Interrupt Descriptor Table (IDT) antes de inicializar o terminal e o shell, garantindo que o sistema possa lidar com interrupções corretamente.
 // Att3: A função pic_init() é chamada para configurar o Programmable Interrupt Controller (PIC) antes de inicializar o terminal e o shell, garantindo que as interrupções sejam remapeadas e possam ser gerenciadas adequadamente.
+// Att4: A função isr_init() é chamada para configurar as Interrupt Service Routines (ISRs) antes de inicializar o terminal e o shell, garantindo que os handlers de interrupção estejam configurados corretamente para lidar com eventos como interrupções de teclado.
 void kernel_main(void) {
     gdt_init();
     idt_init();
     pic_init();
+    isr_init();
     term_init();
+    __asm__ volatile ("sti");
     shell_run();
 }
