@@ -4,6 +4,7 @@
 #include "idt.h"
 #include "pic.h"
 #include "isr.h"
+#include "timer.h"
 
 // Definições para o driver de terminal VGA
 #define VGA_ADDR  ((volatile uint16_t*) 0xB8000) // Buffer de vídeo para texto 
@@ -127,6 +128,7 @@ static void cmd_help(void) {
     term_println("  about   -- sobre o MF-0S");
     term_println("  clear   -- limpa a tela");
     term_println("  halt    -- desliga");
+    term_println("  uptime  -- ticks desde o boot");
 }
 
 // Comando simples para exibir informações sobre o sistema operacional, usando cores para destacar o título e o autor
@@ -150,6 +152,20 @@ static void splash(void) {
     term_println("  x86 32-bit kernel");
     term_putchar('\n');
     term_set_color(VGA_LIGHT_GREY, VGA_BLACK);
+}
+
+static void term_print_uint(uint32_t n) {
+    if (n == 0) { term_putchar('0'); return; }
+    char buf[12];
+    int i = 0;
+    while (n > 0) { buf[i++] = '0' + (n % 10); n /= 10; }
+    for (int j = i - 1; j >= 0; j--) term_putchar(buf[j]);
+}
+
+static void cmd_uptime(void) {
+    term_print("Ticks desde o boot: ");
+    term_print_uint(timer_ticks());
+    term_println(" (100 ticks = 1 segundo)");
 }
 
 // Função principal do shell, que exibe um prompt e processa os comandos digitados pelo usuário em um loop infinito
@@ -188,6 +204,7 @@ static void shell_run(void) {
         else if (str_eq(buf, "halt"))  {
             term_println("Ate logo.");
             __asm__ volatile ("outb %0, %1" : : "a"((uint8_t)0x00), "Nd"((uint16_t)0xf4));        }
+        else if (str_eq(buf, "uptime")) cmd_uptime();
         else {
             // Se o comando não for reconhecido, exibe uma mensagem de erro em vermelho
             term_set_color(VGA_LIGHT_RED, VGA_BLACK);
@@ -203,11 +220,13 @@ static void shell_run(void) {
 // Att2: A função idt_init() é chamada para configurar a Interrupt Descriptor Table (IDT) antes de inicializar o terminal e o shell, garantindo que o sistema possa lidar com interrupções corretamente.
 // Att3: A função pic_init() é chamada para configurar o Programmable Interrupt Controller (PIC) antes de inicializar o terminal e o shell, garantindo que as interrupções sejam remapeadas e possam ser gerenciadas adequadamente.
 // Att4: A função isr_init() é chamada para configurar as Interrupt Service Routines (ISRs) antes de inicializar o terminal e o shell, garantindo que os handlers de interrupção estejam configurados corretamente para lidar com eventos como interrupções de teclado.
+// Att5: A função timer_init() é chamada para configurar o timer do sistema antes de inicializar o terminal e o shell, garantindo que o sistema possa contar o tempo e lidar com interrupções de timer corretamente.
 void kernel_main(void) {
     gdt_init();
     idt_init();
     pic_init();
     isr_init();
+    timer_init();
     term_init();
     __asm__ volatile ("sti");
     splash();

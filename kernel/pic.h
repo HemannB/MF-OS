@@ -11,5 +11,6 @@
 
 void pic_init(void); // Função para inicializar o PIC para remapear as interrupções
 void pic_eoi(uint8_t irq); // Função para enviar um sinal de fim de interrupção (EOI) ao PIC após o tratamento de uma interrupção
+void pic_eoi_irq0(void); // Função para enviar EOI específico para a IRQ0 (timer), já que é a mais comum e pode ser otimizada
 
 #endif

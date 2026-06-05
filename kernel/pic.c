@@ -37,3 +37,8 @@ void pic_eoi(uint8_t irq) {
     outb(PIC1_COMMAND, PIC_EOI);
 }
 
+// Função otimizada para enviar EOI específico para a IRQ0 (timer), já que é a mais comum e pode ser otimizada para evitar a verificação de qual PIC enviar o EOI
+void pic_eoi_irq0(void) {
+    outb(PIC1_COMMAND, PIC_EOI);
+}
+
