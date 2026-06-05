@@ -1,8 +1,6 @@
 #ifndef GDT_H
 #define GDT_H
 
-#endif
-
 #include <stdint.h>
 
 // Descritor de segmento da GDT
@@ -22,3 +20,5 @@ typedef struct {
 } __attribute__((packed)) gdt_ptr_t; // Garante que a estrutura seja empacotada sem preenchimento
 
 void gdt_init(void); // Função para inicializar a GDT
+
+#endif
