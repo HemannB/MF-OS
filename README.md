@@ -28,6 +28,17 @@ Não é um OS de produção. É um OS de aprendizado. Construído peça por peç
 
 ---
 
+## Etapa 2 — O que está implementado
+
+- GDT manual — sem depender do GRUB para configuração de segmentos
+- IDT — tabela de interrupções com até 256 entradas
+- PIC — remapeamento de IRQs para 0x20-0x2F evitando conflito com exceções da CPU
+- Teclado por interrupção via IRQ1:
+  - Buffer circular para armazenamento de teclas
+  - Handler dedicado substituindo o polling anterior
+
+---
+
 ## Estrutura do projeto
 
 ```
