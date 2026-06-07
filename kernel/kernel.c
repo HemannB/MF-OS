@@ -5,6 +5,7 @@
 #include "pic.h"
 #include "isr.h"
 #include "timer.h"
+#include "heap.h"
 
 // Definições para o driver de terminal VGA
 #define VGA_ADDR  ((volatile uint16_t*) 0xB8000) // Buffer de vídeo para texto 
@@ -129,6 +130,7 @@ static void cmd_help(void) {
     term_println("  clear   -- limpa a tela");
     term_println("  halt    -- desliga");
     term_println("  uptime  -- ticks desde o boot");
+    term_println("  memtest -- testa o heap");
 }
 
 // Comando simples para exibir informações sobre o sistema operacional, usando cores para destacar o título e o autor
@@ -168,6 +170,19 @@ static void cmd_uptime(void) {
     term_println(" (100 ticks = 1 segundo)");
 }
 
+// Comando de teste para verificar a funcionalidade do heap, alocando dois inteiros, atribuindo valores e imprimindo-os no terminal
+static void cmd_memtest(void) {
+    uint32_t *a = (uint32_t*) kmalloc(sizeof(uint32_t));
+    uint32_t *b = (uint32_t*) kmalloc(sizeof(uint32_t));
+
+    *a = 42;
+    *b = 58;
+
+    term_print("a = "); term_print_uint(*a); term_putchar('\n');
+    term_print("b = "); term_print_uint(*b); term_putchar('\n');
+    term_print("a + b = "); term_print_uint(*a + *b); term_putchar('\n');
+}
+
 // Função principal do shell, que exibe um prompt e processa os comandos digitados pelo usuário em um loop infinito
 static void shell_run(void) {
     char buf[CMD_MAX]; // Buffer para armazenar o comando digitado pelo usuário, com um tamanho máximo definido por CMD_MAX
@@ -205,6 +220,7 @@ static void shell_run(void) {
             term_println("Ate logo.");
             __asm__ volatile ("outb %0, %1" : : "a"((uint8_t)0x00), "Nd"((uint16_t)0xf4));        }
         else if (str_eq(buf, "uptime")) cmd_uptime();
+        else if (str_eq(buf, "memtest")) cmd_memtest();
         else {
             // Se o comando não for reconhecido, exibe uma mensagem de erro em vermelho
             term_set_color(VGA_LIGHT_RED, VGA_BLACK);
@@ -221,12 +237,14 @@ static void shell_run(void) {
 // Att3: A função pic_init() é chamada para configurar o Programmable Interrupt Controller (PIC) antes de inicializar o terminal e o shell, garantindo que as interrupções sejam remapeadas e possam ser gerenciadas adequadamente.
 // Att4: A função isr_init() é chamada para configurar as Interrupt Service Routines (ISRs) antes de inicializar o terminal e o shell, garantindo que os handlers de interrupção estejam configurados corretamente para lidar com eventos como interrupções de teclado.
 // Att5: A função timer_init() é chamada para configurar o timer do sistema antes de inicializar o terminal e o shell, garantindo que o sistema possa contar o tempo e lidar com interrupções de timer corretamente.
+// Att6: A função heap_init() é chamada para configurar o heap de memória antes de inicializar o terminal e o shell, garantindo que a alocação dinâmica de memória esteja disponível para o sistema e os programas que possam ser executados no futuro.
 void kernel_main(void) {
     gdt_init();
     idt_init();
     pic_init();
     isr_init();
     timer_init();
+    heap_init();
     term_init();
     __asm__ volatile ("sti");
     splash();
