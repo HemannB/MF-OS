@@ -50,6 +50,15 @@ Não é um OS de produção. É um OS de aprendizado. Construído peça por peç
 ![MF-0S rodando no QEMU com cara nova](prints/etapa3.jpg)
 
 ---
+
+## Etapa 4 — O que está implementado
+
+- Paginação x86 ativa via CR0 e CR3
+  - Page Directory e Page Table de 4KB alinhados
+  - Identity mapping dos primeiros 4MB
+  - Kernel continua acessando os mesmos endereços físicos
+
+---
 ## Estrutura do projeto
 
 ```
