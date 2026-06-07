@@ -39,6 +39,15 @@ Não é um OS de produção. É um OS de aprendizado. Construído peça por peç
 
 ---
 
+## Etapa 3 — O que está implementado
+
+- Timer PIT a 100Hz via IRQ0 com contador de ticks
+  - Comando `uptime` — exibe ticks desde o boot
+- Heap com bump allocator
+  - `kmalloc` com alinhamento a 4 bytes
+  - Comando `memtest` — valida alocação dinâmica
+
+---
 ## Estrutura do projeto
 
 ```
