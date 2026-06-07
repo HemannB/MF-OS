@@ -8,6 +8,18 @@
 #include "heap.h"
 #include "paging.h"
 
+// Funções para ler e escrever em portas de E/S, usadas para interagir com o hardware do sistema, como o controlador de vídeo e o teclado
+static inline void outb(uint16_t port, uint8_t val) {
+    __asm__ volatile ("outb %0, %1" : : "a"(val), "Nd"(port));
+}
+
+// Função para ler um byte de uma porta de E/S, usada para obter informações do hardware, como o estado do teclado
+static inline uint8_t inb(uint16_t port) {
+    uint8_t val;
+    __asm__ volatile ("inb %1, %0" : "=a"(val) : "Nd"(port));
+    return val;
+}
+
 // Definições para o driver de terminal VGA
 #define VGA_ADDR  ((volatile uint16_t*) 0xB8000) // Buffer de vídeo para texto 
 #define VGA_COLS  80 // Número de colunas 
@@ -42,6 +54,23 @@ static size_t  term_row; // Variáveis para rastrear a posição atual do cursor
 static size_t  term_col; // Variável para rastrear a posição atual do cursor (coluna)
 static uint8_t term_color; // Variável para rastrear a cor do texto
 
+// Fnção para habilitar o cursor do terminal, configurando os registradores do controlador de vídeo para definir a forma e a posição do cursor
+static void cursor_enable(void) {
+    outb(0x3D4, 0x0A);
+    outb(0x3D5, (inb(0x3D5) & 0xC0) | 13); /* scanline inicial */
+    outb(0x3D4, 0x0B);
+    outb(0x3D5, (inb(0x3D5) & 0xE0) | 15); /* scanline final */
+}
+
+// Função para atualizar a posição do cursor no terminal, calculando a posição linear com base na linha e coluna atuais e configurando os registradores do controlador de vídeo para refletir essa posição
+static void cursor_update(void) {
+    uint16_t pos = term_row * VGA_COLS + term_col;
+    outb(0x3D4, 0x0F);
+    outb(0x3D5, (uint8_t)(pos & 0xFF));
+    outb(0x3D4, 0x0E);
+    outb(0x3D5, (uint8_t)((pos >> 8) & 0xFF));
+}
+
 // Driver de terminal
 void term_init(void) {
     term_row   = 0;
@@ -51,6 +80,7 @@ void term_init(void) {
     for (size_t r = 0; r < VGA_ROWS; r++)
         for (size_t c = 0; c < VGA_COLS; c++)
             VGA_ADDR[r * VGA_COLS + c] = vga_entry(' ', term_color);
+    cursor_enable();
 }
 
 // Função auxiliar para mudar a cor do texto 
@@ -94,6 +124,7 @@ void term_putchar(char c) {
         term_col = 0;
         if (++term_row == VGA_ROWS) term_scroll();
     }
+    cursor_update();
 }
 
 // Função para imprimir uma string no terminal, caractere por caractere
@@ -142,17 +173,26 @@ static void cmd_about(void) {
     term_println("Feito com cafe e muita procrastinacao de tarefas importantes por Bruno Hemann");
 }
 
+// Função para criar um delay usando o timer do sistema
+static void delay_ticks(uint32_t t) {
+    uint32_t start = timer_ticks();
+    while (timer_ticks() - start < t);
+}
+
+// Função para exibir uma splash screen com o nome do sistema operacional e mais firulas...
 static void splash(void) {
     term_set_color(VGA_LIGHT_RED, VGA_BLACK);
-    term_println("    __  ___ ______       ____    _____  ");
-    term_println("   /  |/  // ____/      / __ \\ / ___/  ");
-    term_println("  / /|_/ // /_  ____   / / / / \\__ \\   ");
-    term_println(" / /  / // __/ /____/ / /_/ /___/ /   ");
-    term_println("/_/  /_//_/          \\____//____/    ");
+    term_println("ooo         ooooo ooooooooooo           .oooooo.    .oooooo..o "); delay_ticks(100);
+    term_println("`88.       .888' `888'    `8           d8P'  `Y8b  d8P'    `Y8 "); delay_ticks(100);
+    term_println(" 888b     d'888   888                 888      888 Y88bo.       "); delay_ticks(100);
+    term_println(" 8 Y88. .P  888   888oooo8            888      888  `\"Y8888o.  "); delay_ticks(100);
+    term_println(" 8  `888'   888   888    \"    8888888 888      888     `\"Y88b "); delay_ticks(100);
+    term_println(" 8    Y     888   888                 `88b    d88' oo     .d8P  "); delay_ticks(100);
+    term_println("o8o        o888o o888o                 `Y8bood8P'  8\"\"88888P'  "); delay_ticks(100);
     term_putchar('\n');
     term_set_color(VGA_DARK_GREY, VGA_BLACK);
-    term_println("  MyFuckingOS - Developed by Bruno Hemann");
-    term_println("  x86 32-bit kernel");
+    term_println("MyFuckingOS v0.4 - Developed by Bruno Hemann"); delay_ticks(8);
+    term_println("x86 32-bit kernel | Paging enabled"); delay_ticks(8);
     term_putchar('\n');
     term_set_color(VGA_LIGHT_GREY, VGA_BLACK);
 }
