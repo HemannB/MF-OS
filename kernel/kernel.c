@@ -6,6 +6,7 @@
 #include "isr.h"
 #include "timer.h"
 #include "heap.h"
+#include "paging.h"
 
 // Definições para o driver de terminal VGA
 #define VGA_ADDR  ((volatile uint16_t*) 0xB8000) // Buffer de vídeo para texto 
@@ -238,6 +239,7 @@ static void shell_run(void) {
 // Att4: A função isr_init() é chamada para configurar as Interrupt Service Routines (ISRs) antes de inicializar o terminal e o shell, garantindo que os handlers de interrupção estejam configurados corretamente para lidar com eventos como interrupções de teclado.
 // Att5: A função timer_init() é chamada para configurar o timer do sistema antes de inicializar o terminal e o shell, garantindo que o sistema possa contar o tempo e lidar com interrupções de timer corretamente.
 // Att6: A função heap_init() é chamada para configurar o heap de memória antes de inicializar o terminal e o shell, garantindo que a alocação dinâmica de memória esteja disponível para o sistema e os programas que possam ser executados no futuro.
+// Att7: A função paging_init() é chamada para configurar o sistema de paginação antes de inicializar o terminal e o shell, garantindo que a memória virtual esteja habilitada e configurada corretamente para o sistema operacional.
 void kernel_main(void) {
     gdt_init();
     idt_init();
@@ -245,6 +247,7 @@ void kernel_main(void) {
     isr_init();
     timer_init();
     heap_init();
+    paging_init();
     term_init();
     __asm__ volatile ("sti");
     splash();
