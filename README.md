@@ -47,6 +47,8 @@ Não é um OS de produção. É um OS de aprendizado. Construído peça por peç
   - `kmalloc` com alinhamento a 4 bytes
   - Comando `memtest` — valida alocação dinâmica
 
+![MF-0S rodando no QEMU com cara nova](prints/etapa3.jpg)
+
 ---
 ## Estrutura do projeto
 
