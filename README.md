@@ -59,6 +59,18 @@ Não é um OS de produção. É um OS de aprendizado. Construído peça por peç
   - Kernel continua acessando os mesmos endereços físicos
 
 ---
+
+## Etapa 5 — O que está implementado
+
+- PCB (Process Control Block) com pid, estado e stack própria
+- Estados de processo: READY, RUNNING, BLOCKED
+- Round-robin scheduler cooperativo
+- Context switch via stack switching em Assembly
+- `yield()` — cede CPU voluntariamente ao próximo processo
+- `process_create()` — cria processos com entry point e stack isolada
+- Validado: dois processos alternando A/B cooperativamente
+
+---
 ## Estrutura do projeto
 
 ```
