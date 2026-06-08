@@ -7,6 +7,7 @@
 #include "timer.h"
 #include "heap.h"
 #include "paging.h"
+#include "process.h"
 
 // Funções para ler e escrever em portas de E/S, usadas para interagir com o hardware do sistema, como o controlador de vídeo e o teclado
 static inline void outb(uint16_t port, uint8_t val) {
@@ -272,6 +273,20 @@ static void shell_run(void) {
     }
 }
 
+static void process_a(void) {
+    while (1) {
+        term_set_color(VGA_LIGHT_GREEN, VGA_BLACK);
+        term_print("A");
+    }
+}
+
+static void process_b(void) {
+    while (1) {
+        term_set_color(VGA_LIGHT_CYAN, VGA_BLACK);
+        term_print("B");
+    }
+}
+
 // Função principal do kernel, que inicializa o terminal e inicia o shell para interagir com o usuário
 // Att: A função gdt_init() é chamada para configurar a Global Descriptor Table (GDT) antes de inicializar o terminal e o shell, garantindo que o sistema esteja em um estado adequado para execução.
 // Att2: A função idt_init() é chamada para configurar a Interrupt Descriptor Table (IDT) antes de inicializar o terminal e o shell, garantindo que o sistema possa lidar com interrupções corretamente.
@@ -280,6 +295,7 @@ static void shell_run(void) {
 // Att5: A função timer_init() é chamada para configurar o timer do sistema antes de inicializar o terminal e o shell, garantindo que o sistema possa contar o tempo e lidar com interrupções de timer corretamente.
 // Att6: A função heap_init() é chamada para configurar o heap de memória antes de inicializar o terminal e o shell, garantindo que a alocação dinâmica de memória esteja disponível para o sistema e os programas que possam ser executados no futuro.
 // Att7: A função paging_init() é chamada para configurar o sistema de paginação antes de inicializar o terminal e o shell, garantindo que a memória virtual esteja habilitada e configurada corretamente para o sistema operacional.
+// Att8: A função process_init() é chamada para inicializar o gerenciador de processos, preparando as estruturas de dados necessárias para criar e alternar entre processos.
 void kernel_main(void) {
     gdt_init();
     idt_init();
@@ -288,8 +304,11 @@ void kernel_main(void) {
     timer_init();
     heap_init();
     paging_init();
+    process_init();
     term_init();
     __asm__ volatile ("sti");
     splash();
+    process_create(process_a);
+    process_create(process_b);
     shell_run();
 }

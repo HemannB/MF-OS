@@ -1,12 +1,14 @@
 #include "timer.h"
 #include "idt.h"
 #include "pic.h"
+#include "process.h"
 
 static volatile uint32_t ticks = 0; // Contador de ticks
 
 // Função chamada a cada interrupção do timer
 void timer_handler(void) {
     ticks++;
+    schedule();
 }
 
 // Função para retornar o número de ticks desde a inicialização do timer
