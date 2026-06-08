@@ -277,6 +277,7 @@ static void process_a(void) {
     while (1) {
         term_set_color(VGA_LIGHT_GREEN, VGA_BLACK);
         term_print("A");
+        yield();
     }
 }
 
@@ -284,6 +285,7 @@ static void process_b(void) {
     while (1) {
         term_set_color(VGA_LIGHT_CYAN, VGA_BLACK);
         term_print("B");
+        yield();
     }
 }
 
@@ -308,7 +310,5 @@ void kernel_main(void) {
     term_init();
     __asm__ volatile ("sti");
     splash();
-    process_create(process_a);
-    process_create(process_b);
     shell_run();
 }

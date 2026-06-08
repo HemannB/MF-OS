@@ -8,7 +8,7 @@ static volatile uint32_t ticks = 0; // Contador de ticks
 // Função chamada a cada interrupção do timer
 void timer_handler(void) {
     ticks++;
-    schedule();
+    /* schedule() aqui seria preemptivo — para cooperativo, yield() controla */
 }
 
 // Função para retornar o número de ticks desde a inicialização do timer

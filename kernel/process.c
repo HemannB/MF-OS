@@ -1,47 +1,67 @@
 #include "process.h"
 #include "heap.h"
 
-static process_t processes[MAX_PROCESSES]; // array com todos os processos
-static int       process_count = 0; // quantos processos existem atualmente
-static int       current_pid   = 0; // indice do processo atualmente em execução
+static process_t processes[MAX_PROCESSES]; /* array com todos os processos do sistema */
+static int       process_count = 0;        /* quantidade de processos criados */
+static int       current_pid   = 0;        /* índice do processo em execução agora */
 
-// Função para incializar o sistema de processos
+/* inicializa todos os slots como bloqueados — nenhum processo existe ainda */
 void process_init(void) {
-    // Inicializa o array de processos, definindo o PID de cada processo como 0 e seu estado como bloqueado, indicando que eles não estão prontos para execução até que sejam criados e configurados adequadamente
     for (int i = 0; i < MAX_PROCESSES; i++) {
         processes[i].pid   = 0;
         processes[i].state = PROCESS_BLOCKED;
     }
 }
 
-// Função para criar um novo processo, recebendo um ponteiro de função que representa o ponto de entrada do processo a ser criado, alocando um novo processo, inicializando seu estado e registradores, e o adicionando à lista de processos prontos para execução, retornando o identificador do processo criado ou -1 em caso de falha
+/* cria um novo processo — configura a stack com o entry point no topo
+   o primeiro 'ret' do context_switch vai pular para entry */
 int process_create(void (*entry)(void)) {
     if (process_count >= MAX_PROCESSES) return -1;
 
     int i = process_count++;
-    processes[i].pid         = i;
-    processes[i].state       = PROCESS_READY;
-    processes[i].regs.eip    = (uint32_t) entry;
-    processes[i].regs.esp    = (uint32_t) &processes[i].stack[STACK_SIZE - 1];
-    processes[i].regs.eflags = 0x202; // EFLAGS com bit IF (Interrupt Flag) setado para permitir interrupções
+    processes[i].pid   = i;
+    processes[i].state = PROCESS_READY;
+
+    uint32_t *stack_top = (uint32_t*)(&processes[i].stack[STACK_SIZE]);
+    stack_top--; *stack_top = (uint32_t) entry; /* endereço de entrada — ret pula aqui */
+    stack_top--; *stack_top = 0;                /* dummy ebp */
+    stack_top--; *stack_top = 0;                /* dummy ebx */
+    stack_top--; *stack_top = 0;                /* dummy esi */
+    stack_top--; *stack_top = 0;                /* dummy edi — ESP aponta aqui */
+    processes[i].esp = (uint32_t) stack_top;
 
     return i;
 }
 
+/* round-robin: marca atual como READY e avança para o próximo */
 void schedule(void) {
     if (process_count == 0) return;
-
-    // marca o processo atual como READY
     processes[current_pid].state = PROCESS_READY;
-
-    // próximo processo — round-robin 
     current_pid = (current_pid + 1) % process_count;
-
-    // marca o próximo como RUNNING
     processes[current_pid].state = PROCESS_RUNNING;
 }
 
-// Função para obter o processo atual
+/* retorna o processo atualmente em execução */
 process_t* process_current(void) {
     return &processes[current_pid];
+}
+
+/* inicia o primeiro processo — remove o entry da stack e pula para ele */
+void process_run(void) {
+    current_pid = 0;
+    processes[0].state = PROCESS_RUNNING;
+
+    uint32_t dummy_esp;
+    context_switch(&dummy_esp, &processes[0].esp);
+}
+
+/* cede a CPU voluntariamente — salva estado atual e restaura o próximo */
+void yield(void) {
+    __asm__ volatile ("cli");           /* desabilita interrupções durante o switch */
+    process_t *old = process_current();
+    schedule();
+    process_t *new = process_current();
+    if (old != new)
+        context_switch(&old->esp, &new->esp); /* passa ponteiros para os ESPs */
+    __asm__ volatile ("sti");           /* reabilita interrupções */
 }
