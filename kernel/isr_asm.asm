@@ -14,10 +14,14 @@ extern timer_handler
 extern pic_eoi_irq0
 
 irq0_wrapper:
-    pusha                   ; salva todos os registradores gerais na stack
-    call timer_handler      ; incrementa o contador de ticks
-    call pic_eoi_irq0       ; avisa o PIC que o handler terminou — sem isso IRQ0 para de disparar
-    popa                    ; restaura todos os registradores
-    iret                    ; retorno especial de interrupção
-
+    pusha                       ; salva EAX, ECX, EDX, EBX, ESP, EBP, ESI, EDI
+    mov eax, esp                ; captura ESP atual (aponta para os regs salvos)
+    push eax                    ; passa como argumento para o handler C
+    call timer_handler          ; retorna ESP do próximo processo em EAX
+    add esp, 4                  ; limpa o argumento
+    mov esp, eax                ; carrega ESP do próximo processo
+    call pic_eoi_irq0           ; EOI antes de retornar
+    popa                        ; restaura registradores do próximo processo
+    iret                        ; retorna para o próximo processo
+    
 section .note.GNU-stack noalloc noexec nowrite progbits

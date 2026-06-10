@@ -6,9 +6,17 @@
 static volatile uint32_t ticks = 0; // Contador de ticks
 
 // Função chamada a cada interrupção do timer
-void timer_handler(void) {
+uint32_t timer_handler(uint32_t current_esp) {
     ticks++;
-    /* schedule() aqui seria preemptivo — para cooperativo, yield() controla */
+
+    // salva ESP do processo atual no PCB
+    process_current()->esp = current_esp;
+
+    // avança para o próximo processo
+    schedule();
+
+    // retorna ESP do próximo processo
+    return process_current()->esp;
 }
 
 // Função para retornar o número de ticks desde a inicialização do timer

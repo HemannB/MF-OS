@@ -41,7 +41,7 @@ $(ISO): $(KERNEL)
 
 # Regra para rodar a ISO no QEMU
 run: $(ISO)
-	qemu-system-i386 -cdrom $(ISO) -device isa-debug-exit,iobase=0xf4,iosize=0x04
+	qemu-system-i386 -cdrom $(ISO) -device isa-debug-exit,iobase=0xf4,iosize=0x04 || true
 
 clean:
 	rm -f $(OBJ) $(KERNEL) $(ISO) iso/boot/mf0s.kernel

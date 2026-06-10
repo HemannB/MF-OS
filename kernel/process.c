@@ -23,17 +23,22 @@ int process_create(void (*entry)(void)) {
     processes[i].state = PROCESS_READY;
 
     uint32_t *stack_top = (uint32_t*)(&processes[i].stack[STACK_SIZE]);
-    stack_top--; *stack_top = (uint32_t) entry; /* endereço de entrada — ret pula aqui */
-    stack_top--; *stack_top = 0;                /* dummy ebp */
-    stack_top--; *stack_top = 0;                /* dummy ebx */
-    stack_top--; *stack_top = 0;                /* dummy esi */
-    stack_top--; *stack_top = 0;                /* dummy edi — ESP aponta aqui */
-    processes[i].esp = (uint32_t) stack_top;
 
+    stack_top--; *stack_top = 0x202;              // EFLAGS: IF habilitado
+    stack_top--; *stack_top = 0x08;               // CS: code segment
+    stack_top--; *stack_top = (uint32_t) entry;   // EIP: entry point
+
+    // pusha dummy 8 registradores
+    for (int j = 0; j < 8; j++) {
+        stack_top--;
+        *stack_top = 0;
+    }
+
+    processes[i].esp = (uint32_t) stack_top;
     return i;
 }
 
-/* round-robin: marca atual como READY e avança para o próximo */
+// round-robin: marca atual como READY e avança para o próximo
 void schedule(void) {
     if (process_count == 0) return;
     processes[current_pid].state = PROCESS_READY;
@@ -41,18 +46,23 @@ void schedule(void) {
     processes[current_pid].state = PROCESS_RUNNING;
 }
 
-/* retorna o processo atualmente em execução */
+// retorna o processo atualmente em execução
 process_t* process_current(void) {
     return &processes[current_pid];
 }
 
-/* inicia o primeiro processo — remove o entry da stack e pula para ele */
+// inicia o primeiro processo remove o entry da stack e pula para ele
 void process_run(void) {
     current_pid = 0;
     processes[0].state = PROCESS_RUNNING;
 
-    uint32_t dummy_esp;
-    context_switch(&dummy_esp, &processes[0].esp);
+    // carrega ESP do primeiro processo e salta para ele via iret
+    __asm__ volatile (
+        "mov %0, %%esp\n"
+        "popa\n"
+        "iret\n"
+        : : "r"(processes[0].esp)
+    );
 }
 
 /* cede a CPU voluntariamente — salva estado atual e restaura o próximo */

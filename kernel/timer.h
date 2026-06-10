@@ -5,5 +5,6 @@
 
 void timer_init(void); // Inicializa o timer
 uint32_t timer_ticks(void); // Retorna o número de ticks desde a inicialização do timer
+uint32_t timer_handler(uint32_t current_esp); 
 
 #endif
