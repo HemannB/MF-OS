@@ -151,6 +151,8 @@ static void cmd_clear(void) {
     term_row = 0;
     term_col = 0;
     term_init();
+    term_set_color(VGA_DARK_GREY, VGA_BLACK);
+    term_println("Tela limpa.");
 }
 
 // Comando simples para exibir informações sobre comandos disponíveis, usando cores para destacar o título e os comandos
