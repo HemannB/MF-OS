@@ -241,7 +241,9 @@ static void shell_run(void) {
 
     while (1) {
         term_set_color(VGA_LIGHT_GREEN, VGA_BLACK);
-        term_print("MF-0S> ");
+        term_print("MF-0S");
+        term_set_color(VGA_WHITE, VGA_BLACK);
+        term_print("> ");
         term_set_color(VGA_LIGHT_CYAN, VGA_BLACK);
         int len = 0;
         while (1) { // Loop para ler caracteres do teclado até que o usuário pressione Enter, armazenando-os no buffer e lidando com backspace
