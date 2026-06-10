@@ -164,6 +164,7 @@ static void cmd_help(void) {
     term_println("  halt    -- desliga");
     term_println("  uptime  -- ticks desde o boot");
     term_println("  memtest -- testa o heap");
+    term_println("  version -- versao do sistema");
 }
 
 // Comando simples para exibir informações sobre o sistema operacional, usando cores para destacar o título e o autor
@@ -172,6 +173,13 @@ static void cmd_about(void) {
     term_println("Desenvolvido para fins educacionais e de aprendizado");
     term_set_color(VGA_LIGHT_RED, VGA_BLACK);
     term_println("Feito com cafe e muita procrastinacao de tarefas importantes por Bruno Hemann");
+}
+
+// Comando para exibir a versão do sistema
+static void cmd_version(void) {
+    term_set_color(VGA_LIGHT_GREEN, VGA_BLACK);
+    term_println("MF-0S v0.5 - x86 32-bit kernel");
+    term_set_color(VGA_LIGHT_GREY, VGA_BLACK);
 }
 
 // Função para criar um delay usando o timer do sistema
@@ -263,6 +271,7 @@ static void shell_run(void) {
             __asm__ volatile ("outb %0, %1" : : "a"((uint8_t)0x00), "Nd"((uint16_t)0xf4));        }
         else if (str_eq(buf, "uptime")) cmd_uptime();
         else if (str_eq(buf, "memtest")) cmd_memtest();
+        else if (str_eq(buf, "version")) cmd_version();
         else {
             // Se o comando não for reconhecido, exibe uma mensagem de erro em vermelho
             term_set_color(VGA_LIGHT_RED, VGA_BLACK);
