@@ -71,20 +71,42 @@ Não é um OS de produção. É um OS de aprendizado. Construído peça por peç
 - Validado: dois processos alternando A/B cooperativamente
 
 ---
+
+## Etapa 6 — O que está implementado
+
+- Scheduler preemptivo via IRQ0
+  - `irq0_wrapper` salva ESP do processo interrompido
+  - `timer_handler` troca de processo a cada tick
+  - Processos interrompidos pelo timer sem precisar de yield()
+  - Validado: dois processos alternando sem yield
+
+---
 ## Estrutura do projeto
 
 ```
 MF-0S/
 ├── boot/
-│   └── boot.asm          # Entry point: Multiboot header + setup da stack
+│   └── boot.asm          # Entry point: Multiboot header, stack e chamada ao kernel_main
 ├── kernel/
-│   └── kernel.c          # VGA driver, teclado, shell
+│   ├── kernel.c          # VGA driver, cursor, teclado, shell e kernel_main
+│   ├── gdt.c / gdt.h     # Global Descriptor Table — segmentos de memória
+│   ├── gdt_flush.asm     # lgdt + recarga dos registradores de segmento
+│   ├── idt.c / idt.h     # Interrupt Descriptor Table — tabela de handlers
+│   ├── idt_flush.asm     # lidt — registra a IDT na CPU
+│   ├── pic.c / pic.h     # Programmable Interrupt Controller — remapeia IRQs para 0x20-0x2F
+│   ├── isr.c / isr.h     # Interrupt Service Routines — handler do teclado (IRQ1)
+│   ├── isr_asm.asm       # Wrappers Assembly para IRQ0 (timer) e IRQ1 (teclado)
+│   ├── timer.c / timer.h # PIT a 100Hz — contador de ticks e scheduler preemptivo
+│   ├── heap.c / heap.h   # Bump allocator — kmalloc sem free
+│   ├── paging.c / paging.h # Paginação x86 — identity mapping dos primeiros 4MB
+│   ├── process.c / process.h # PCB, scheduler round-robin, yield e context switch
+│   └── switch.asm        # Context switch via stack switching em Assembly
 ├── iso/
 │   └── boot/
 │       └── grub/
-│           └── grub.cfg  # Configuração do GRUB
-├── linker.ld             # Layout de memória — carrega o kernel a partir de 1MB
-├── Makefile              # Build, link e geração da ISO
+│           └── grub.cfg  # Configuração do GRUB — aponta para mf0s.kernel
+├── linker.ld             # Layout de memória — kernel carregado a partir de 1MB
+├── Makefile              # Compila, linka, gera ISO e roda no QEMU
 └── README.md
 ```
 
@@ -92,11 +114,20 @@ MF-0S/
 
 ## Dependências
 
+### Linux (Ubuntu / Debian / WSL2)
 ```bash
 sudo apt install nasm qemu-system-x86 grub-pc-bin grub-common xorriso mtools build-essential
 ```
 
----
+### macOS
+```bash
+brew install nasm qemu i686-elf-gcc i686-elf-binutils xorriso
+```
+> No macOS, substitui `grub-mkrescue` no Makefile por uma solução alternativa
+> ou usa uma imagem Docker com as ferramentas Linux.
+
+### Windows
+Recomendado usar **WSL2** com Ubuntu e seguir as instruções do Linux.
 
 ## Como compilar e rodar
 
