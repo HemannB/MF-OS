@@ -13,3 +13,5 @@ gdt_flush:
     jmp 0x08:.flush   ; 0x08 = seletor do code segment (índice 1 na GDT) ; O salto é necessário para atualizar o CS com o novo seletor do code segment. O endereço .flush é um rótulo que aponta para a próxima instrução, garantindo que o código continue executando após a atualização do CS.
 .flush:
     ret
+
+section .note.GNU-stack noalloc noexec nowrite progbits
