@@ -81,6 +81,19 @@ Não é um OS de produção. É um OS de aprendizado. Construído peça por peç
   - Validado: dois processos alternando sem yield
 
 ---
+
+## Etapa 7 — O que está implementado
+
+- VGA modo gráfico 13h (320×200, 256 cores)
+  - Framebuffer em 0xA0000
+  - Double buffering com back_buffer em RAM
+  - `vga_init_mode13h()` — ativa o modo gráfico
+  - `vga_set_palette()` — define paleta de 256 cores RGB
+  - `vga_put_pixel()` — escreve pixel no back_buffer
+  - `vga_swap()` — copia back_buffer para o framebuffer
+  - Validado: gradiente diagonal 320×200 pixels
+
+---
 ## Estrutura do projeto
 
 ```
