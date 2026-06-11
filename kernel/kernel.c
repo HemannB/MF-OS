@@ -27,22 +27,34 @@ static void delay_ticks(uint32_t t) {
     while (timer_ticks() - start < t);
 }
 
-// Exibe a splash screen animada na inicialização — cada linha aparece com delay de 1 segundo
+// Exibe uma mensagem de boot com prefixo [OK] colorido — indica subsistema inicializado com sucesso
+static void boot_msg(const char *msg) {
+    term_set_color(VGA_DARK_GREY, VGA_BLACK);
+    term_print("  [");
+    term_set_color(VGA_LIGHT_GREEN, VGA_BLACK);
+    term_print("OK");
+    term_set_color(VGA_DARK_GREY, VGA_BLACK);
+    term_print("] ");
+    term_set_color(VGA_LIGHT_GREY, VGA_BLACK);
+    term_println(msg);
+    delay_ticks(15); /* pequeno delay para efeito visual de boot progressivo */
+}
+
+// Exibe a splash screen animada com o logo ASCII art e informações do sistema
 static void splash(void) {
     term_set_color(VGA_LIGHT_RED, VGA_BLACK);
-    term_println("ooo         ooooo ooooooooooo           .oooooo.    .oooooo..o "); delay_ticks(100);
-    term_println("`88.       .888' `888'    `8           d8P'  `Y8b  d8P'    `Y8 "); delay_ticks(100);
-    term_println(" 888b     d'888   888                 888      888 Y88bo.       "); delay_ticks(100);
-    term_println(" 8 Y88. .P  888   888oooo8            888      888  `\"Y8888o.  "); delay_ticks(100);
-    term_println(" 8  `888'   888   888    \"    8888888 888      888     `\"Y88b "); delay_ticks(100);
-    term_println(" 8    Y     888   888                 `88b    d88' oo     .d8P  "); delay_ticks(100);
-    term_println("o8o        o888o o888o                 `Y8bood8P'  8\"\"88888P'  "); delay_ticks(100);
+    term_println("ooo         ooooo ooooooooooo           .oooooo.    .oooooo..o ");
+    term_println("`88.       .888' `888'    `8           d8P'  `Y8b  d8P'    `Y8 ");
+    term_println(" 888b     d'888   888                 888      888 Y88bo.       ");
+    term_println(" 8 Y88. .P  888   888oooo8            888      888  `\"Y8888o.  ");
+    term_println(" 8  `888'   888   888    \"    8888888 888      888     `\"Y88b ");
+    term_println(" 8    Y     888   888                 `88b    d88' oo     .d8P  ");
+    term_println("o8o        o888o o888o                 `Y8bood8P'  8\"\"88888P'  ");
     term_putchar('\n');
     term_set_color(VGA_DARK_GREY, VGA_BLACK);
-    term_println("MyFuckingOS v0.5 - Developed by Bruno Hemann"); delay_ticks(8);
-    term_println("x86 32-bit kernel | Paging enabled"); delay_ticks(8);
+    term_println("  MyFuckingOS v0.5 - Developed by Bruno Hemann");
+    term_println("  x86 32-bit kernel");
     term_putchar('\n');
-    term_set_color(VGA_LIGHT_GREY, VGA_BLACK);
 }
 
 // Exibe a lista de comandos disponíveis com destaque de cor para o título
@@ -144,19 +156,33 @@ static void shell_run(void) {
     }
 }
 
-// Ponto de entrada do kernel — inicializa todos os subsistemas em ordem e inicia o shell
-// A ordem importa: GDT antes de IDT, IDT antes de PIC, PIC antes de ISR/timer
+// Ponto de entrada do kernel inicializa subsistemas em ordem com feedback visual de boot
+// A ordem importa: terminal primeiro para mostrar mensagens, GDT antes de IDT,
+// IDT antes de PIC, PIC antes de ISR e timer, heap antes de paging e processos
 void kernel_main(void) {
-    gdt_init();       /* configura a Global Descriptor Table */
-    idt_init();       /* configura a Interrupt Descriptor Table */
-    pic_init();       /* remapeia IRQs do PIC para 0x20-0x2F */
-    isr_init();       /* registra handler do teclado (IRQ1) */
-    timer_init();     /* configura PIT a 100Hz (IRQ0) */
-    heap_init();      /* inicializa o heap a partir de 2MB */
-    paging_init();    /* ativa paginação com identity mapping de 4MB */
-    process_init();   /* inicializa o gerenciador de processos */
-    term_init();      /* inicializa o driver de terminal VGA */
-    __asm__ volatile ("sti"); /* habilita interrupções */
+    term_init();
+
+    /* inicialização silenciosa — timer ainda não está ativo */
+    gdt_init();
+    idt_init();
+    pic_init();
+    isr_init();
+    timer_init();
+    __asm__ volatile ("sti"); /* habilita interrupções — delay_ticks passa a funcionar */
+
+    /* agora o timer está ativo — splash com animação e boot messages com delay */
     splash();
+
+    boot_msg("GDT carregada");
+    boot_msg("IDT configurada");
+    boot_msg("PIC remapeado (IRQs 0x20-0x2F)");
+    boot_msg("ISR: teclado (IRQ1) registrado");
+    boot_msg("Timer PIT a 100Hz (IRQ0)");
+
+    heap_init();    boot_msg("Heap inicializado (2MB-3MB)");
+    paging_init();  boot_msg("Paginacao ativa (4MB identity map)");
+    process_init(); boot_msg("Gerenciador de processos pronto");
+
+    term_putchar('\n');
     shell_run();
 }
