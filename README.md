@@ -94,6 +94,21 @@ Não é um OS de produção. É um OS de aprendizado. Construído peça por peç
   - Validado: gradiente diagonal 320×200 pixels
 
 ---
+
+## Etapa 8 — O que está implementado
+
+- Sistema de arquivos ramdisk via módulos GRUB Multiboot
+  - `fs_init()` — lê módulos carregados pelo GRUB via Multiboot info
+  - `fs_open()` — busca arquivo pelo nome
+  - `fs_read()` — lê bytes do arquivo com offset
+  - `fs_size()` — retorna tamanho do arquivo
+  - Comando `ls` — lista arquivos carregados no ramdisk
+  - Comando `cat` — exibe conteúdo de um arquivo
+  - Validado: test.txt carregado e lido via shell
+
+  ![MF-0S rodando no QEMU com novas funcionalidades](prints/etapa8.png)
+
+---
 ## Estrutura do projeto
 
 ```

@@ -53,7 +53,7 @@ static void splash(void) {
     term_println("o8o        o888o o888o                 `Y8bood8P'  8\"\"88888P'  ");
     term_putchar('\n');
     term_set_color(VGA_DARK_GREY, VGA_BLACK);
-    term_println("  MyFuckingOS v0.5 - Developed by Bruno Hemann");
+    term_println("  MyFuckingOS v0.8 - Developed by Bruno Hemann");
     term_println("  x86 32-bit kernel");
     term_putchar('\n');
 }
@@ -92,7 +92,7 @@ static void cmd_clear(void) {
 // Exibe a versão atual do sistema operacional
 static void cmd_version(void) {
     term_set_color(VGA_LIGHT_GREEN, VGA_BLACK);
-    term_println("MF-0S v0.5 - x86 32-bit kernel");
+    term_println("MF-0S v0.8 - x86 32-bit kernel");
     term_set_color(VGA_LIGHT_GREY, VGA_BLACK);
 }
 
