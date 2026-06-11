@@ -1,10 +1,6 @@
 #include "pic.h"
+#include "io.h"
 #include <stdint.h>
-
-// Função para escrever um byte de uma porta de E/S usando a instrução outb do x86
-static inline void outb(uint16_t port, uint8_t val) {
-    __asm__ volatile ("outb %0, %1" : : "a"(val), "Nd"(port));
-}
 
 // Função para incializar o PIC configurando com ICW (Initialization Command Words) para remapear as interrupções e mascarar todas as IRQs inicialmente
 void pic_init(void) {

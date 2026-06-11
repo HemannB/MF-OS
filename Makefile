@@ -17,7 +17,7 @@ ASFLAGS = -f elf32 # diz ao NASM para gerar um arquivo objeto no formato ELF de 
 LDFLAGS = -m elf_i386 -T linker.ld # diz ao linker para gerar um executável ELF de 32-bit e -T linker.ld usa o linker script
 
 # lista de arquivos objeto que compõem o kernel
-OBJ = boot/boot.o kernel/kernel.o kernel/gdt.o kernel/gdt_flush.o kernel/idt.o kernel/idt_flush.o kernel/pic.o kernel/isr.o kernel/isr_asm.o kernel/timer.o kernel/heap.o kernel/paging.o kernel/process.o kernel/switch.o kernel/vga13h.o
+OBJ = boot/boot.o kernel/kernel.o kernel/gdt.o kernel/gdt_flush.o kernel/idt.o kernel/idt_flush.o kernel/pic.o kernel/isr.o kernel/isr_asm.o kernel/timer.o kernel/heap.o kernel/paging.o kernel/process.o kernel/switch.o kernel/vga13h.o kernel/terminal.o kernel/tests.o
 KERNEL = mf0s.kernel # nome do arquivo do kernel
 ISO    = mf0s.iso # nome do arquivo ISO final
 

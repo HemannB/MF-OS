@@ -1,20 +1,11 @@
 #include "isr.h"
 #include "idt.h"
 #include "pic.h"
+#include "io.h"
 
 #define KB_BUFFER_SIZE 256
 
 void term_putchar(char c); // Declaração da função para escrever um caractere no terminal, que será usada no handler de interrupção do teclado
-
-static inline uint8_t inb(uint16_t port) {
-    uint8_t val;
-    __asm__ volatile ("inb %1, %0" : "=a"(val) : "Nd"(port));
-    return val;
-}
-
-static inline void outb(uint16_t port, uint8_t val) {
-    __asm__ volatile ("outb %0, %1" : : "a"(val), "Nd"(port));
-}
 
 static const char sc_ascii[] = {
     0,  0,  '1','2','3','4','5','6','7','8','9','0','-','=','\b', 0,

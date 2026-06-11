@@ -1,20 +1,11 @@
 #include "vga13h.h"
+#include "io.h"
 
 #define VGA_WIDTH   320                             // largura em pixels 
 #define VGA_HEIGHT  200                             // altura em pixels 
 #define FRAMEBUFFER ((volatile uint8_t*) 0xA0000)   // endereço do framebuffer VGA modo 13h 
 
 static uint8_t back_buffer[VGA_WIDTH * VGA_HEIGHT];
-
-static inline void outb(uint16_t port, uint8_t val) {
-    __asm__ volatile ("outb %0, %1" : : "a"(val), "Nd"(port));
-}
-
-static inline uint8_t inb(uint16_t port) {
-    uint8_t val;
-    __asm__ volatile ("inb %1, %0" : "=a"(val) : "Nd"(port));
-    return val;
-}
 
 void vga_init_mode13h(void) {
     // miscellaneous output habilita acesso aos registradores VGA
