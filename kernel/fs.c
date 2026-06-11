@@ -82,3 +82,12 @@ uint32_t fs_size(fs_file_t *f) {
     if (!f) return 0;
     return f->size;
 }
+
+int fs_count(void) {
+    return file_count;
+}
+
+fs_file_t *fs_get_file(int index) {
+    if (index < 0 || index >= file_count) return 0;
+    return &files[index];
+}

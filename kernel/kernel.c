@@ -70,6 +70,8 @@ static void cmd_help(void) {
     term_println("  uptime  -- ticks desde o boot");
     term_println("  memtest -- testa o heap");
     term_println("  version -- versao do sistema");
+    term_println("  ls      -- lista arquivos no ramdisk");
+    term_println("  cat     -- exibe conteudo de um arquivo");
 }
 
 // Exibe informações sobre o MF-0S e seu autor
@@ -99,6 +101,50 @@ static void cmd_uptime(void) {
     term_print("Ticks desde o boot: ");
     term_print_uint(timer_ticks());
     term_println(" (100 ticks = 1 segundo)");
+}
+
+// lista todos os arquivos carregados pelo GRUB no ramdisk
+static void cmd_ls(void) {
+    term_set_color(VGA_CYAN, VGA_BLACK);
+    term_println("Arquivos no ramdisk:");
+    term_set_color(VGA_LIGHT_GREY, VGA_BLACK);
+
+    extern fs_file_t *fs_get_file(int index);
+    extern int        fs_count(void);
+
+    int count = fs_count();
+    if (count == 0) {
+        term_set_color(VGA_DARK_GREY, VGA_BLACK);
+        term_println("  (nenhum arquivo carregado)");
+        return;
+    }
+
+    for (int i = 0; i < count; i++) {
+        fs_file_t *f = fs_get_file(i);
+        term_print("  ");
+        term_print(f->name);
+        term_print("  (");
+        term_print_uint(f->size);
+        term_println(" bytes)");
+    }
+}
+
+// exibe o conteúdo de um arquivo do ramdisk
+static void cmd_cat(const char *name) {
+    fs_file_t *f = fs_open(name);
+    if (!f) {
+        term_set_color(VGA_LIGHT_RED, VGA_BLACK);
+        term_print("Arquivo nao encontrado: ");
+        term_println(name);
+        term_set_color(VGA_LIGHT_GREY, VGA_BLACK);
+        return;
+    }
+
+    term_set_color(VGA_WHITE, VGA_BLACK);
+    for (uint32_t i = 0; i < f->size; i++)
+        term_putchar((char) f->data[i]);
+    term_putchar('\n');
+    term_set_color(VGA_LIGHT_GREY, VGA_BLACK);
 }
 
 // Loop principal do shell — exibe o prompt, lê comandos do teclado e despacha para os handlers
@@ -144,6 +190,8 @@ static void shell_run(void) {
         else if (str_eq(buf, "uptime"))  cmd_uptime();
         else if (str_eq(buf, "memtest")) cmd_memtest();
         else if (str_eq(buf, "version")) cmd_version();
+        else if (str_eq(buf, "ls"))      cmd_ls();
+        else if (buf[0]=='c' && buf[1]=='a' && buf[2]=='t' && buf[3]==' ') cmd_cat(buf + 4);
         else if (str_eq(buf, "halt")) {
             term_println("Ate logo.");
             __asm__ volatile ("outb %0, %1" : : "a"((uint8_t)0x00), "Nd"((uint16_t)0xf4));

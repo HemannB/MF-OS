@@ -17,5 +17,7 @@ void      fs_init(uint32_t multiboot_addr);
 fs_file_t *fs_open(const char *name);
 uint32_t   fs_read(fs_file_t *f, void *buf, uint32_t size, uint32_t offset);
 uint32_t   fs_size(fs_file_t *f);
+int        fs_count(void);
+fs_file_t *fs_get_file(int index);
 
 #endif
