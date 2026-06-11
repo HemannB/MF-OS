@@ -11,6 +11,7 @@
 #include "vga13h.h"
 #include "terminal.h"
 #include "tests.h"
+#include "fs.h"
 
 #define CMD_MAX 128 // Tamanho máximo do buffer de comando do shell
 
@@ -159,7 +160,7 @@ static void shell_run(void) {
 // Ponto de entrada do kernel inicializa subsistemas em ordem com feedback visual de boot
 // A ordem importa: terminal primeiro para mostrar mensagens, GDT antes de IDT,
 // IDT antes de PIC, PIC antes de ISR e timer, heap antes de paging e processos
-void kernel_main(void) {
+void kernel_main(uint32_t multiboot_info_addr) {
     term_init();
 
     /* inicialização silenciosa — timer ainda não está ativo */
@@ -182,7 +183,8 @@ void kernel_main(void) {
     heap_init();    boot_msg("Heap inicializado (2MB-3MB)");
     paging_init();  boot_msg("Paginacao ativa (4MB identity map)");
     process_init(); boot_msg("Gerenciador de processos pronto");
-
+    fs_init(multiboot_info_addr); boot_msg("Sistema de arquivos pronto");
+    
     term_putchar('\n');
     shell_run();
 }
