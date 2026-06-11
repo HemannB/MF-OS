@@ -7,25 +7,33 @@
 // Tabelas de páginas alinhadas a 4KB, necessárias para o sistema de paginação funcionar corretamente
 static uint32_t page_directory[1024] __attribute__((aligned(4096))); 
 // A tabela de páginas para o primeiro diretório de páginas, que mapeia os primeiros 4MB de memória física para os primeiros 4MB de memória virtual
-static uint32_t page_table[1024]     __attribute__((aligned(4096)));
-
+/* 4 page tables = 16MB de memória mapeada */
+static uint32_t page_table_0[1024] __attribute__((aligned(4096))); /* 0MB - 4MB  */
+static uint32_t page_table_1[1024] __attribute__((aligned(4096))); /* 4MB - 8MB  */
+static uint32_t page_table_2[1024] __attribute__((aligned(4096))); /* 8MB - 12MB */
+static uint32_t page_table_3[1024] __attribute__((aligned(4096))); /* 12MB - 16MB */
 
 //Função para inicializar o sistema de paginação, configurando as tabelas de páginas e ativando a paginação no processador
 void paging_init(void) {
-    // Preenche a tabela de páginas para mapear os primeiros 4MB de memória física para os primeiros 4MB de memória virtual, marcando cada página como presente e com permissão de escrita
+    // mapeia 16MB com identity mapping — 4 page tables de 4MB cada
     for (int i = 0; i < 1024; i++) {
-        page_table[i] = (i * PAGE_SIZE) | PAGE_PRESENT | PAGE_WRITABLE;
+        page_table_0[i] = (i * PAGE_SIZE)              | PAGE_PRESENT | PAGE_WRITABLE;
+        page_table_1[i] = (i * PAGE_SIZE + 0x400000)   | PAGE_PRESENT | PAGE_WRITABLE;
+        page_table_2[i] = (i * PAGE_SIZE + 0x800000)   | PAGE_PRESENT | PAGE_WRITABLE;
+        page_table_3[i] = (i * PAGE_SIZE + 0xC00000)   | PAGE_PRESENT | PAGE_WRITABLE;
     }
 
-    // Configura o diretório de páginas para apontar para a tabela de páginas criada, marcando-a como presente e com permissão de escrita
-    page_directory[0] = (uint32_t) page_table | PAGE_PRESENT | PAGE_WRITABLE;
+    // aponta as 4 primeiras entradas do page directory para as page tables
+    page_directory[0] = (uint32_t) page_table_0 | PAGE_PRESENT | PAGE_WRITABLE;
+    page_directory[1] = (uint32_t) page_table_1 | PAGE_PRESENT | PAGE_WRITABLE;
+    page_directory[2] = (uint32_t) page_table_2 | PAGE_PRESENT | PAGE_WRITABLE;
+    page_directory[3] = (uint32_t) page_table_3 | PAGE_PRESENT | PAGE_WRITABLE;
 
-    // Marca as entradas restantes do diretório de páginas como não presentes, indicando que não há mapeamento para essas regiões de memória
-    for (int i = 1; i < 1024; i++) {
+    // zera o resto do page directory 
+    for (int i = 4; i < 1024; i++)
         page_directory[i] = 0;
-    }
 
-    // Ativa a paginação no processador, carregando o endereço do diretório de páginas para o registrador CR3 e configurando o bit de habilitação de paginação no registrador CR0
+    // carrega CR3 e ativa paginação no CR0 
     __asm__ volatile (
         "mov %0, %%cr3\n"
         "mov %%cr0, %%eax\n"

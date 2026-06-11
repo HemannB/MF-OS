@@ -229,7 +229,7 @@ void kernel_main(uint32_t multiboot_info_addr) {
     boot_msg("Timer PIT a 100Hz (IRQ0)");
 
     heap_init();    boot_msg("Heap inicializado (2MB-3MB)");
-    paging_init();  boot_msg("Paginacao ativa (4MB identity map)");
+    paging_init();  boot_msg("Paginacao ativa (16MB identity map)");
     process_init(); boot_msg("Gerenciador de processos pronto");
     fs_init(multiboot_info_addr); boot_msg("Sistema de arquivos pronto");
     
