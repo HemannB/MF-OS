@@ -109,6 +109,15 @@ Não é um OS de produção. É um OS de aprendizado. Construído peça por peç
   ![MF-0S rodando no QEMU com novas funcionalidades](prints/etapa8.png)
 
 ---
+
+## Etapa 9 — O que está implementado
+
+- Paginação expandida de 4MB para 16MB
+  - 4 page tables de 4MB cada (identity mapping)
+  - Suporte a 0MB–16MB de memória virtual = física
+  - Base de memória suficiente para carregar o Doom
+
+---
 ## Estrutura do projeto
 
 ```
