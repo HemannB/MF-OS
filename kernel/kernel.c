@@ -8,6 +8,7 @@
 #include "heap.h"
 #include "paging.h"
 #include "process.h"
+#include "vga13h.h"
 
 // Funções para ler e escrever em portas de E/S, usadas para interagir com o hardware do sistema, como o controlador de vídeo e o teclado
 static inline void outb(uint16_t port, uint8_t val) {
@@ -286,6 +287,8 @@ static void shell_run(void) {
     }
 }
 
+//Teste dos processos A e B com preempção
+/*
 static void process_a(void) {
     while (1) {
         term_set_color(VGA_LIGHT_GREEN, VGA_BLACK);
@@ -299,6 +302,25 @@ static void process_b(void) {
         term_print("B");
     }
 }
+*/
+
+//Teste do VGA com CORES
+/*
+static void vga13h_test(void) {
+    vga_init_mode13h();
+
+    // preenche a tela com um gradiente de cores
+    for (int y = 0; y < 200; y++)
+        for (int x = 0; x < 320; x++)
+            vga_put_pixel(x, y, (x + y) % 256);
+
+    vga_swap();
+
+    // espera 3 segundos e volta ao text mode 
+    uint32_t start = timer_ticks();
+    while (timer_ticks() - start < 300);
+}
+*/
 
 // Função principal do kernel, que inicializa o terminal e inicia o shell para interagir com o usuário
 // Att: A função gdt_init() é chamada para configurar a Global Descriptor Table (GDT) antes de inicializar o terminal e o shell, garantindo que o sistema esteja em um estado adequado para execução.
