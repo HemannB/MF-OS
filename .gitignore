@@ -13,6 +13,7 @@ iso/boot/*.kernel
 .vscode/ipch/
 .vscode/.browse.VC.db*
 _docs/
+.idea/
 
 # macOS
 .DS_Store
