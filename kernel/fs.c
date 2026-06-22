@@ -3,7 +3,8 @@
 
 /* tabela interna de arquivos carregados pelo GRUB */
 static fs_file_t files[FS_MAX_FILES];
-static int       file_count = 0;
+static int       file_count  = 0;
+static uint32_t  heap_base   = 0;   /* primeiro endereço livre após todos os módulos */
 
 /* estrutura da Multiboot info — passada pelo GRUB via EBX */
 typedef struct {
@@ -35,15 +36,15 @@ void fs_init(uint32_t multiboot_addr) {
     for (uint32_t i = 0; i < mb->mods_count && file_count < FS_MAX_FILES; i++) {
         /* nome do arquivo vem da cmdline do módulo */
         char *cmdline = (char*) mods[i].cmdline;
-        
-        /* extrai só o nome do arquivo do caminho completo */
+
+        /* extrai só o nome do arquivo do caminho completo (após última '/') */
         char *name = cmdline;
-        for (char *p = cmdline; *p; p++)
+        for (char *p = cmdline; *p && *p != ' '; p++)
             if (*p == '/') name = p + 1;
 
-        /* copia o nome para a tabela */
+        /* copia o nome para a tabela — para no whitespace ou no terminador */
         int j = 0;
-        while (name[j] && j < FS_NAME_MAX - 1) {
+        while (name[j] && name[j] != ' ' && j < FS_NAME_MAX - 1) {
             files[file_count].name[j] = name[j];
             j++;
         }
@@ -51,8 +52,22 @@ void fs_init(uint32_t multiboot_addr) {
 
         files[file_count].data = (uint8_t*) mods[i].mod_start;
         files[file_count].size = mods[i].mod_end - mods[i].mod_start;
+
+        /* rastreia o endereço mais alto usado pelos módulos, alinhado a 4KB */
+        uint32_t mod_end_aligned = (mods[i].mod_end + 0xFFF) & ~0xFFF;
+        if (mod_end_aligned > heap_base)
+            heap_base = mod_end_aligned;
+
         file_count++;
     }
+}
+
+/* retorna o primeiro endereço livre após todos os módulos GRUB (alinhado a 4KB)
+   o heap deve começar aqui para não sobrescrever o WAD */
+uint32_t fs_heap_base(void) {
+    /* fallback: se nenhum módulo foi carregado, começa em 2MB */
+    if (heap_base == 0) return 0x200000;
+    return heap_base;
 }
 
 /* procura um arquivo pelo nome na tabela — retorna NULL se não encontrar */

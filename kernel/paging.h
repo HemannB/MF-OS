@@ -7,4 +7,5 @@
 void paging_init(void);
 
 
+void paging_map_lfb(void);
 #endif

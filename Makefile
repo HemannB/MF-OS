@@ -1,49 +1,174 @@
-CC  = gcc # compilador C 
-LD  = ld # linker
-AS  = nasm # montador
+CC  = gcc
+LD  = ld
+AS  = nasm
 
-# Flags de compilação
-CFLAGS  = -m32 -std=gnu99 -ffreestanding -O2 -Wall -Wextra \
-          -fno-builtin -fno-stack-protector -nostdlib -nodefaultlibs 
-# m32: gera código de 32-bit
-# std=gnu99: padrão C99 com extensões GNU necessário para o  Assembly
-# O2: otimização nível 2
-# Wall -Wextra: ativa todos os warnings
-# fno-builtin: não substituir funções como memcpy por versões internas do GCC
-# fno-stack-protector: desativa o stack canary
-# nodefaultlibs: não linka bibliotecas padrão automaticamente
+CFLAGS = -m32 -std=gnu99 -ffreestanding -O2 -Wall -Wextra \
+         -fno-builtin -fno-stack-protector -nostdlib -nodefaultlibs \
+         -Ikernel
 
-ASFLAGS = -f elf32 # diz ao NASM para gerar um arquivo objeto no formato ELF de 32-bit
-LDFLAGS = -m elf_i386 -T linker.ld # diz ao linker para gerar um executável ELF de 32-bit e -T linker.ld usa o linker script
+DOOM_CFLAGS = $(CFLAGS) -DDOOM_LIBC_SHIMS -DCMAP256 -DDOOMGENERIC_RESX=320 -DDOOMGENERIC_RESY=200 \
+              -Idoomgeneric/doomgeneric \
+              -w
 
-# lista de arquivos objeto que compõem o kernel
-OBJ = boot/boot.o kernel/kernel.o kernel/gdt.o kernel/gdt_flush.o kernel/idt.o kernel/idt_flush.o kernel/pic.o kernel/isr.o kernel/isr_asm.o kernel/timer.o kernel/heap.o kernel/paging.o kernel/process.o kernel/switch.o kernel/vga13h.o kernel/terminal.o kernel/tests.o kernel/fs.o
-KERNEL = mf0s.kernel # nome do arquivo do kernel
-ISO    = mf0s.iso # nome do arquivo ISO final
+ASFLAGS = -f elf32
+LDFLAGS = -m elf_i386 -T linker.ld
 
-all: $(ISO) # alvo padrão para construir a ISO
+DOOM_SRC_DIR = doomgeneric/doomgeneric
 
-# Regras de compilação
-%.o: %.asm
+# ── Objetos do kernel ────────────────────────────────────────────────
+KERNEL_OBJ = \
+    boot/boot.o \
+    kernel/kernel.o \
+    kernel/gdt.o \
+    kernel/gdt_flush.o \
+    kernel/idt.o \
+    kernel/idt_flush.o \
+    kernel/pic.o \
+    kernel/isr.o \
+    kernel/isr_asm.o \
+    kernel/timer.o \
+    kernel/heap.o \
+    kernel/paging.o \
+    kernel/process.o \
+    kernel/switch.o \
+    kernel/vga13h.o \
+    kernel/terminal.o \
+    kernel/tests.o \
+    kernel/fs.o \
+    kernel/libc.o \
+    kernel/doom_shims.o
+
+# ── Objetos do doomgeneric (lista exata dos .c presentes) ────────────
+DOOM_OBJ = \
+    $(DOOM_SRC_DIR)/doomgeneric_mf0s.o \
+    $(DOOM_SRC_DIR)/doomgeneric.o \
+    $(DOOM_SRC_DIR)/am_map.o \
+    $(DOOM_SRC_DIR)/d_event.o \
+    $(DOOM_SRC_DIR)/d_items.o \
+    $(DOOM_SRC_DIR)/d_iwad.o \
+    $(DOOM_SRC_DIR)/d_loop.o \
+    $(DOOM_SRC_DIR)/d_main.o \
+    $(DOOM_SRC_DIR)/d_mode.o \
+    $(DOOM_SRC_DIR)/d_net.o \
+    $(DOOM_SRC_DIR)/doomdef.o \
+    $(DOOM_SRC_DIR)/doomstat.o \
+    $(DOOM_SRC_DIR)/dstrings.o \
+    $(DOOM_SRC_DIR)/dummy.o \
+    $(DOOM_SRC_DIR)/f_finale.o \
+    $(DOOM_SRC_DIR)/f_wipe.o \
+    $(DOOM_SRC_DIR)/g_game.o \
+    $(DOOM_SRC_DIR)/gusconf.o \
+    $(DOOM_SRC_DIR)/hu_lib.o \
+    $(DOOM_SRC_DIR)/hu_stuff.o \
+    $(DOOM_SRC_DIR)/i_cdmus.o \
+    $(DOOM_SRC_DIR)/i_endoom.o \
+    $(DOOM_SRC_DIR)/i_input.o \
+    $(DOOM_SRC_DIR)/i_joystick.o \
+    $(DOOM_SRC_DIR)/i_scale.o \
+    $(DOOM_SRC_DIR)/i_sound.o \
+    $(DOOM_SRC_DIR)/i_system.o \
+    $(DOOM_SRC_DIR)/i_timer.o \
+    $(DOOM_SRC_DIR)/i_video.o \
+    $(DOOM_SRC_DIR)/icon.o \
+    $(DOOM_SRC_DIR)/info.o \
+    $(DOOM_SRC_DIR)/m_argv.o \
+    $(DOOM_SRC_DIR)/m_bbox.o \
+    $(DOOM_SRC_DIR)/m_cheat.o \
+    $(DOOM_SRC_DIR)/m_config.o \
+    $(DOOM_SRC_DIR)/m_controls.o \
+    $(DOOM_SRC_DIR)/m_fixed.o \
+    $(DOOM_SRC_DIR)/m_menu.o \
+    $(DOOM_SRC_DIR)/m_misc.o \
+    $(DOOM_SRC_DIR)/m_random.o \
+    $(DOOM_SRC_DIR)/memio.o \
+    $(DOOM_SRC_DIR)/mus2mid.o \
+    $(DOOM_SRC_DIR)/p_ceilng.o \
+    $(DOOM_SRC_DIR)/p_doors.o \
+    $(DOOM_SRC_DIR)/p_enemy.o \
+    $(DOOM_SRC_DIR)/p_floor.o \
+    $(DOOM_SRC_DIR)/p_inter.o \
+    $(DOOM_SRC_DIR)/p_lights.o \
+    $(DOOM_SRC_DIR)/p_map.o \
+    $(DOOM_SRC_DIR)/p_maputl.o \
+    $(DOOM_SRC_DIR)/p_mobj.o \
+    $(DOOM_SRC_DIR)/p_plats.o \
+    $(DOOM_SRC_DIR)/p_pspr.o \
+    $(DOOM_SRC_DIR)/p_saveg.o \
+    $(DOOM_SRC_DIR)/p_setup.o \
+    $(DOOM_SRC_DIR)/p_sight.o \
+    $(DOOM_SRC_DIR)/p_spec.o \
+    $(DOOM_SRC_DIR)/p_switch.o \
+    $(DOOM_SRC_DIR)/p_telept.o \
+    $(DOOM_SRC_DIR)/p_tick.o \
+    $(DOOM_SRC_DIR)/p_user.o \
+    $(DOOM_SRC_DIR)/r_bsp.o \
+    $(DOOM_SRC_DIR)/r_data.o \
+    $(DOOM_SRC_DIR)/r_draw.o \
+    $(DOOM_SRC_DIR)/r_main.o \
+    $(DOOM_SRC_DIR)/r_plane.o \
+    $(DOOM_SRC_DIR)/r_segs.o \
+    $(DOOM_SRC_DIR)/r_sky.o \
+    $(DOOM_SRC_DIR)/r_things.o \
+    $(DOOM_SRC_DIR)/s_sound.o \
+    $(DOOM_SRC_DIR)/sha1.o \
+    $(DOOM_SRC_DIR)/sounds.o \
+    $(DOOM_SRC_DIR)/st_lib.o \
+    $(DOOM_SRC_DIR)/st_stuff.o \
+    $(DOOM_SRC_DIR)/statdump.o \
+    $(DOOM_SRC_DIR)/tables.o \
+    $(DOOM_SRC_DIR)/v_video.o \
+    $(DOOM_SRC_DIR)/w_checksum.o \
+    $(DOOM_SRC_DIR)/w_file.o \
+    $(DOOM_SRC_DIR)/w_file_stdc.o \
+    $(DOOM_SRC_DIR)/w_main.o \
+    $(DOOM_SRC_DIR)/w_wad.o \
+    $(DOOM_SRC_DIR)/wi_stuff.o \
+    $(DOOM_SRC_DIR)/z_zone.o
+
+OBJ    = $(KERNEL_OBJ) $(DOOM_OBJ)
+KERNEL = mf0s.kernel
+ISO    = mf0s.iso
+
+all: $(ISO)
+
+# ── Regras de compilação ─────────────────────────────────────────────
+
+boot/boot.o: boot/boot.asm
 	$(AS) $(ASFLAGS) $< -o $@
 
-%.o: %.c
+kernel/gdt_flush.o: kernel/gdt_flush.asm
+	$(AS) $(ASFLAGS) $< -o $@
+
+kernel/idt_flush.o: kernel/idt_flush.asm
+	$(AS) $(ASFLAGS) $< -o $@
+
+kernel/isr_asm.o: kernel/isr_asm.asm
+	$(AS) $(ASFLAGS) $< -o $@
+
+kernel/switch.o: kernel/switch.asm
+	$(AS) $(ASFLAGS) $< -o $@
+
+kernel/%.o: kernel/%.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
-# Regra para linkar o kernel
+$(DOOM_SRC_DIR)/%.o: $(DOOM_SRC_DIR)/%.c
+	$(CC) $(DOOM_CFLAGS) -c $< -o $@
+
+# ── Link ─────────────────────────────────────────────────────────────
 $(KERNEL): $(OBJ) linker.ld
 	$(LD) $(LDFLAGS) -o $@ $(OBJ)
 
-# Regra para criar a imagem ISO
+# ── ISO ──────────────────────────────────────────────────────────────
 $(ISO): $(KERNEL)
 	cp $(KERNEL) iso/boot/mf0s.kernel
 	grub-mkrescue -o $(ISO) iso/
 
-# Regra para rodar a ISO no QEMU
+# ── QEMU ─────────────────────────────────────────────────────────────
 run: $(ISO)
-	qemu-system-i386 -cdrom $(ISO) -device isa-debug-exit,iobase=0xf4,iosize=0x04 || true
+	qemu-system-i386 -vga std -cdrom $(ISO) -m 512M \
+	    -device isa-debug-exit,iobase=0xf4,iosize=0x04 || true
 
 clean:
-	rm -f $(OBJ) $(KERNEL) $(ISO) iso/boot/mf0s.kernel
+	rm -f $(KERNEL_OBJ) $(DOOM_OBJ) $(KERNEL) $(ISO) iso/boot/mf0s.kernel
 
 .PHONY: all run clean
