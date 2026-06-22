@@ -118,7 +118,42 @@ Não é um OS de produção. É um OS de aprendizado. Construído peça por peç
   - Base de memória suficiente para carregar o Doom
 
 ---
-## Doom — In Coming...
+
+## Etapa 10 — Doom rodando no MF-0S bare metal
+
+O objetivo desta etapa foi portar o [doomgeneric](https://github.com/ozkl/doomgeneric) para rodar diretamente sobre o kernel MF-0S, sem sistema operacional, sem libc, sem SDL — apenas hardware.
+
+### O que foi implementado
+
+**Kernel:**
+- Paginação expandida para 512MB + mapeamento do LFB Bochs VBE em `0xFD000000`
+- Heap dinâmico com base calculada após os módulos GRUB (`fs_heap_base()`) - evita sobrescrever o WAD na memória
+- Timer tick-only sem scheduler - o Doom roda como thread única do kernel
+- Driver de teclado com modo dual: terminal (ASCII) e Doom (scancodes raw via `irq1_doom_push`)
+- Driver VGA substituído para Bochs VBE via portas `0x01CE/0x01CF` - LFB linear em `0xFD000000`
+- `terminal_set_graphics()` suprime escrita em `0xB8000` durante o Doom
+- `libc.c` - implementações freestanding de `memcpy`, `memset`, `strcmp`, `strcasecmp`, `strdup`, `strtol`, etc.
+- `doom_shims.c` - shims completos: `malloc`, `printf`, `fopen/fread/fclose`, `fseek/ftell`, `exit`, `abs`, `__divdi3`, `__ctype_toupper_loc`, etc. Todos redirecionados para o kernel
+
+**Port doomgeneric:**
+- `doomgeneric_mf0s.c` - interface completa: `DG_Init`, `DG_DrawFrame`, `DG_GetKey`, `DG_GetTicksMs`, `DG_SleepMs`
+- `d_main.c` - `D_DoomLoop` com `while(1)` loop, `savegamedir` fixo, sem `M_SaveDefaults`
+- `i_video.c` - `I_VideoBuffer` via `malloc`, `MF0S_FlushPalette` envia paleta PLAYPAL ao DAC VGA
+- `hu_stuff.c` - verificação de lumps ausentes antes de `W_CacheLumpName` (shareware WAD)
+
+**Build:**
+- QEMU com `-vga std -m 512M`
+- `doom1.wad` carregado como módulo GRUB
+- Compilado com `-DCMAP256 -DDOOMGENERIC_RESX=320 -DDOOMGENERIC_RESY=200`
+
+### Como rodar
+
+1. Coloca o `doom1.wad` em `iso/boot/doom1.wad`
+2. `make && make run`
+3. No shell do MF-0S, digita `doom`
+
+![Doom rodando no MF-0S](prints/etapa_doom.png)
+
 ---
 ## Estrutura do projeto
 
