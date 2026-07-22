@@ -84,5 +84,6 @@ void doom_main(void) {
     /* Inicializa VBE antes do Doom para garantir que a janela
        do QEMU já está em 320x200 quando DG_DrawFrame for chamado */
     vga_init_mode13h();
-    doomgeneric_Create(3, (char**)doom_argv);
+    int doom_argc = (int)(sizeof(doom_argv) / sizeof(doom_argv[0])) - 1;
+    doomgeneric_Create(doom_argc, (char**)doom_argv);
 }
