@@ -1,4 +1,5 @@
 #include "fs.h"
+#include "multiboot.h"
 #include <stdint.h>
 
 /* tabela interna de arquivos carregados pelo GRUB */
@@ -8,25 +9,6 @@ static uint32_t  heap_base   = 0;   /* primeiro endereço livre após todos os m
 
 extern uint8_t kernel_end;
 
-/* estrutura da Multiboot info — passada pelo GRUB via EBX */
-typedef struct {
-    uint32_t flags;
-    uint32_t mem_lower;
-    uint32_t mem_upper;
-    uint32_t boot_device;
-    uint32_t cmdline;
-    uint32_t mods_count;  /* quantidade de módulos carregados */
-    uint32_t mods_addr;   /* endereço da lista de módulos */
-} __attribute__((packed)) multiboot_info_t;
-
-/* cada entrada na lista de módulos */
-typedef struct {
-    uint32_t mod_start;   /* endereço de início do módulo na memória */
-    uint32_t mod_end;     /* endereço de fim */
-    uint32_t cmdline;     /* nome/linha de comando do módulo */
-    uint32_t reserved;
-} __attribute__((packed)) multiboot_module_t;
-
 void fs_init(uint32_t multiboot_addr) {
     multiboot_info_t *mb = (multiboot_info_t*) multiboot_addr;
 
@@ -34,7 +16,7 @@ void fs_init(uint32_t multiboot_addr) {
     heap_base = ((uint32_t)&kernel_end + 0xFFF) & ~0xFFF;
 
     /* verifica se o GRUB carregou algum módulo (bit 3 das flags) */
-    if (!(mb->flags & (1 << 3))) return;
+    if (!(mb->flags & MULTIBOOT_INFO_MODULES)) return;
 
     multiboot_module_t *mods = (multiboot_module_t*) mb->mods_addr;
 
