@@ -159,6 +159,19 @@ O objetivo desta etapa foi portar o [doomgeneric](https://github.com/ozkl/doomge
 ![Doom rodando no MF-0S](prints/etapa_doom.png)
 
 ---
+
+## Etapa 11 — Apresentação e experiência de boot
+
+- Tela inicial redesenhada para VGA texto 80×25
+- Logo compacto, edição e versão exibidos sem provocar scroll
+- Sequência de boot organizada por subsistema com indicadores `[ OK ]`
+- Resumo de memória mapeada, heap disponível e endereço-base
+- Prompt colorido no formato `mf0s:/#`
+- Identidade e versão do sistema centralizadas no kernel
+- Boot headless verificável com `make smoke`
+
+---
+
 ## Estrutura do projeto
 
 ```
