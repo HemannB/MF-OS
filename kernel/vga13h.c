@@ -19,7 +19,7 @@
 #define VGA_HEIGHT 200
 #define LFB_ADDR   0xFD000000
 
-static uint8_t  back_buffer[VGA_WIDTH * VGA_HEIGHT];
+static uint8_t  back_buffer[VGA_WIDTH * VGA_HEIGHT] __attribute__((aligned(4)));
 static uint8_t *lfb = (uint8_t*) LFB_ADDR;
 
 static void vbe_write(uint16_t index, uint16_t value) {
@@ -47,8 +47,11 @@ void vga_set_palette(uint8_t *palette) {
 }
 
 void vga_swap(void) {
-    for (int i = 0; i < VGA_WIDTH * VGA_HEIGHT; i++)
-        lfb[i] = back_buffer[i];
+    /* copia 64000 bytes em dwords para o LFB */
+    uint32_t *dst = (uint32_t*) lfb;
+    uint32_t *src = (uint32_t*) back_buffer;
+    for (int i = 0; i < (VGA_WIDTH * VGA_HEIGHT) / 4; i++)
+        dst[i] = src[i];
 }
 
 void vga_put_pixel(int x, int y, uint8_t color) {
