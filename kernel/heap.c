@@ -8,6 +8,11 @@ static uint8_t *heap_end = 0;
    base é calculada em kernel_main via fs_heap_base() para não
    sobrescrever módulos GRUB (WAD, etc.) */
 void heap_init(uint32_t base, uint32_t size) {
+    if (!base || size > UINT32_MAX - base) {
+        heap_ptr = 0;
+        heap_end = 0;
+        return;
+    }
     heap_ptr = (uint8_t*) base;
     heap_end = (uint8_t*)(base + size);
 }
@@ -16,8 +21,10 @@ void heap_init(uint32_t base, uint32_t size) {
    O Doom usa Zone Memory internamente, então malloc/free viram shims
    que delegam aqui: o Doom faz 1 malloc grande e gerencia o resto */
 void* kmalloc(size_t size) {
+    if (size > SIZE_MAX - 3) return 0;
     size = (size + 3) & ~3;
-    if (!heap_ptr || heap_ptr + size > heap_end) return 0;
+    if (!size || !heap_ptr || heap_ptr > heap_end) return 0;
+    if (size > (size_t)(heap_end - heap_ptr)) return 0;
     void *block = heap_ptr;
     heap_ptr += size;
     return block;
