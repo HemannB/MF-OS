@@ -19,12 +19,20 @@
    ═══════════════════════════════════════════════════════════════════ */
 
 void* malloc(size_t size)           { return kmalloc(size); }
-void* calloc(size_t n, size_t size) { return kzalloc(n * size); }
+void* calloc(size_t n, size_t size) {
+    if (size && n > SIZE_MAX / size) return 0;
+    return kzalloc(n * size);
+}
 void  free(void *p)                 { (void)p; /* bump allocator — sem free */ }
 void* realloc(void *p, size_t size) {
-    /* realloc simples: aloca novo bloco e copia — sem free do antigo */
+    if (!p) return kmalloc(size);
+    if (!size) return 0;
+
     void *n = kmalloc(size);
-    if (n && p) kmemcpy(n, p, size);
+    if (n) {
+        size_t old_size = kmalloc_size(p);
+        kmemcpy(n, p, old_size < size ? old_size : size);
+    }
     return n;
 }
 

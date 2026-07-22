@@ -9,5 +9,6 @@
 void  heap_init(uint32_t base, uint32_t size);
 void* kmalloc(size_t size);
 void* kzalloc(size_t size);  /* kmalloc + zera o bloco */
+size_t kmalloc_size(const void *ptr);
 
 #endif

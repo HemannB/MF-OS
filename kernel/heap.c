@@ -21,13 +21,17 @@ void heap_init(uint32_t base, uint32_t size) {
    O Doom usa Zone Memory internamente, então malloc/free viram shims
    que delegam aqui: o Doom faz 1 malloc grande e gerencia o resto */
 void* kmalloc(size_t size) {
-    if (size > SIZE_MAX - 3) return 0;
-    size = (size + 3) & ~3;
-    if (!size || !heap_ptr || heap_ptr > heap_end) return 0;
-    if (size > (size_t)(heap_end - heap_ptr)) return 0;
-    void *block = heap_ptr;
-    heap_ptr += size;
-    return block;
+    if (!size || size > SIZE_MAX - sizeof(size_t) - 3) return 0;
+
+    size_t aligned_size = (size + 3) & ~3;
+    size_t allocation_size = sizeof(size_t) + aligned_size;
+    if (!heap_ptr || heap_ptr > heap_end) return 0;
+    if (allocation_size > (size_t)(heap_end - heap_ptr)) return 0;
+
+    size_t *header = (size_t*)heap_ptr;
+    *header = size;
+    heap_ptr += allocation_size;
+    return header + 1;
 }
 
 /* kmalloc + zera o bloco (equivalente a calloc) */
@@ -35,4 +39,9 @@ void* kzalloc(size_t size) {
     void *p = kmalloc(size);
     if (p) kmemset(p, 0, size);
     return p;
+}
+
+size_t kmalloc_size(const void *ptr) {
+    if (!ptr) return 0;
+    return ((const size_t*)ptr)[-1];
 }
