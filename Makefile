@@ -177,7 +177,7 @@ smoke: $(ISO)
 	timeout 10s qemu-system-i386 -vga std -cdrom $(ISO) -m 512M \
 	    -display none -monitor none -serial none -no-reboot -no-shutdown \
 	    -debugcon file:$$log || status=$$?; \
-	if [ $$status -ne 124 ] || ! grep -q "MF-0S> " $$log; then \
+	if [ $$status -ne 124 ] || ! grep -q "mf0s:/# " $$log; then \
 	    echo "smoke test failed; debug log: $$log"; \
 	    cat $$log; \
 	    exit 1; \

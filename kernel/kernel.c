@@ -16,6 +16,9 @@
 #include "multiboot.h"
 
 #define CMD_MAX 128
+#define MFOS_NAME "MF-0S"
+#define MFOS_VERSION "0.9"
+#define MFOS_EDITION "Doom Edition"
 
 static int str_eq(const char *a, const char *b) {
     while (*a && *b)
@@ -28,31 +31,67 @@ static void delay_ticks(uint32_t t) {
     while (timer_ticks() - start < t);
 }
 
-static void boot_msg(const char *msg) {
+static void boot_status(const char *component, const char *detail) {
     term_set_color(VGA_DARK_GREY, VGA_BLACK);
-    term_print("  [");
+    term_print("  [ ");
     term_set_color(VGA_LIGHT_GREEN, VGA_BLACK);
     term_print("OK");
     term_set_color(VGA_DARK_GREY, VGA_BLACK);
-    term_print("] ");
-    term_set_color(VGA_LIGHT_GREY, VGA_BLACK);
-    term_println(msg);
-    delay_ticks(10);
+    term_print(" ] ");
+    term_set_color(VGA_WHITE, VGA_BLACK);
+    term_print(component);
+    term_set_color(VGA_DARK_GREY, VGA_BLACK);
+    term_print("  ");
+    term_println(detail);
+    delay_ticks(4);
+}
+
+static void print_hex32(uint32_t value) {
+    char hex[9];
+    hex[8] = '\0';
+    for (int i = 0; i < 8; i++) {
+        hex[7 - i] = "0123456789ABCDEF"[value & 0xF];
+        value >>= 4;
+    }
+    term_print(hex);
 }
 
 static void splash(void) {
-    term_set_color(VGA_LIGHT_RED, VGA_BLACK);
-    term_println("ooo         ooooo ooooooooooo           .oooooo.    .oooooo..o ");
-    term_println("`88.       .888' `888'    `8           d8P'  `Y8b  d8P'    `Y8 ");
-    term_println(" 888b     d'888   888                 888      888 Y88bo.       ");
-    term_println(" 8 Y88. .P  888   888oooo8            888      888  `\"Y8888o.  ");
-    term_println(" 8  `888'   888   888    \"    8888888 888      888     `\"Y88b ");
-    term_println(" 8    Y     888   888                 `88b    d88' oo     .d8P  ");
-    term_println("o8o        o888o o888o                 `Y8bood8P'  8\"\"88888P'  ");
-    term_putchar('\n');
     term_set_color(VGA_DARK_GREY, VGA_BLACK);
-    term_println("  MyFuckingOS v0.9 - Developed by Bruno Hemann");
-    term_println("  x86 32-bit kernel | Doom Edition");
+    term_println("  ==========================================================================  ");
+    term_set_color(VGA_LIGHT_RED, VGA_BLACK);
+    term_println("   __  __ _____       ___  ____  ");
+    term_println("  |  \\/  |  ___|     / _ \\/ ___| ");
+    term_println("  | |\\/| | |_  _____| | | \\___ \\ ");
+    term_println("  |_|  |_|_|          \\___/|____/ ");
+    term_set_color(VGA_DARK_GREY, VGA_BLACK);
+    term_print("  MyFuckingOS  /  v");
+    term_print(MFOS_VERSION);
+    term_print("  /  x86 bare metal  /  ");
+    term_println(MFOS_EDITION);
+    term_println("  --------------------------------------------------------------------------  ");
+    term_set_color(VGA_LIGHT_GREY, VGA_BLACK);
+    term_println("  BOOT SEQUENCE");
+    term_putchar('\n');
+}
+
+static void boot_summary(uint32_t mapped_bytes, uint32_t heap_base,
+                         uint32_t heap_size) {
+    term_set_color(VGA_DARK_GREY, VGA_BLACK);
+    term_println("  --------------------------------------------------------------------------  ");
+    term_set_color(VGA_LIGHT_CYAN, VGA_BLACK);
+    term_print("  MEMORY  ");
+    term_set_color(VGA_LIGHT_GREY, VGA_BLACK);
+    term_print_uint(mapped_bytes / (1024 * 1024));
+    term_print("MB mapped  /  ");
+    term_print_uint(heap_size / (1024 * 1024));
+    term_print("MB heap @ 0x");
+    print_hex32(heap_base);
+    term_putchar('\n');
+    term_set_color(VGA_LIGHT_GREEN, VGA_BLACK);
+    term_print("  READY   ");
+    term_set_color(VGA_DARK_GREY, VGA_BLACK);
+    term_println("type 'help' for commands or 'doom' to launch the game");
     term_putchar('\n');
 }
 
@@ -75,7 +114,8 @@ static void cmd_help(void) {
 }
 
 static void cmd_about(void) {
-    term_println("MF-0S 'MyFucking-OS': kernel x86 32-bit escrito do zero em C e Assembly");
+    term_print(MFOS_NAME);
+    term_println(" 'MyFucking-OS': kernel x86 32-bit escrito do zero em C e Assembly");
     term_set_color(VGA_LIGHT_RED, VGA_BLACK);
     term_println("Feito com cafe e muita procrastinacao por Bruno Hemann");
 }
@@ -84,7 +124,11 @@ static void cmd_clear(void) { term_init(); }
 
 static void cmd_version(void) {
     term_set_color(VGA_LIGHT_GREEN, VGA_BLACK);
-    term_println("MF-0S v0.9 - x86 32-bit kernel | Doom Edition");
+    term_print(MFOS_NAME);
+    term_print(" v");
+    term_print(MFOS_VERSION);
+    term_print(" - x86 32-bit kernel | ");
+    term_println(MFOS_EDITION);
     term_set_color(VGA_LIGHT_GREY, VGA_BLACK);
 }
 
@@ -167,9 +211,13 @@ static void shell_run(void) {
     char buf[CMD_MAX];
     while (1) {
         term_set_color(VGA_LIGHT_GREEN, VGA_BLACK);
-        term_print("MF-0S");
+        term_print("mf0s");
+        term_set_color(VGA_DARK_GREY, VGA_BLACK);
+        term_print(":");
+        term_set_color(VGA_LIGHT_CYAN, VGA_BLACK);
+        term_print("/");
         term_set_color(VGA_WHITE, VGA_BLACK);
-        term_print("> ");
+        term_print("# ");
         term_set_color(VGA_LIGHT_CYAN, VGA_BLACK);
 
         int len = 0;
@@ -230,31 +278,13 @@ void kernel_main(uint32_t multiboot_info_addr) {
     __asm__ volatile ("sti");
 
     splash();
-    boot_msg("GDT carregada");
-    boot_msg("IDT configurada");
-    boot_msg("PIC remapeado (IRQs 0x20-0x2F)");
-    boot_msg("Sistema de arquivos pronto");
-
-    term_set_color(VGA_DARK_GREY, VGA_BLACK);
-    term_print("  [");
-    term_set_color(VGA_LIGHT_GREEN, VGA_BLACK);
-    term_print("OK");
-    term_set_color(VGA_DARK_GREY, VGA_BLACK);
-    term_print("] ");
-    term_set_color(VGA_LIGHT_GREY, VGA_BLACK);
-    term_print("Heap em 0x");
-    uint32_t base = heap_base;
-    char hex[9]; hex[8] = '\0';
-    for (int i = 0; i < 8; i++) { hex[7-i] = "0123456789ABCDEF"[base & 0xF]; base >>= 4; }
-    term_print(hex);
-    term_print(" (+");
-    term_print_uint(heap_size / (1024 * 1024));
-    term_println("MB)");
-
-    boot_msg("Paginacao ativa (limite Multiboot + LFB 0xFD000000)");
-    boot_msg("Timer PIT a 100Hz (preempcao sob demanda)");
-    boot_msg("Teclado IRQ1 pronto");
-
-    term_putchar('\n');
+    boot_status("GDT", "kernel segments loaded");
+    boot_status("IDT", "interrupt table ready");
+    boot_status("PIC", "IRQs remapped to 0x20-0x2F");
+    boot_status("RAMDISK", "Multiboot modules mounted");
+    boot_status("PAGING", "identity map and linear framebuffer active");
+    boot_status("PIT", "100Hz timer and preemption ready");
+    boot_status("INPUT", "PS/2 keyboard listening on IRQ1");
+    boot_summary(mapped_bytes, heap_base, heap_size);
     shell_run();
 }
