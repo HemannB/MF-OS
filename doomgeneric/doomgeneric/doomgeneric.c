@@ -14,7 +14,8 @@ void doomgeneric_Create(int argc, char **argv)
 
     M_FindResponseFile();
 
-    DG_ScreenBuffer = malloc(DOOMGENERIC_RESX * DOOMGENERIC_RESY * 4);
+    DG_ScreenBuffer = malloc(DOOMGENERIC_RESX * DOOMGENERIC_RESY
+                             * sizeof(*DG_ScreenBuffer));
     DG_Init();
 
     D_DoomMain();
