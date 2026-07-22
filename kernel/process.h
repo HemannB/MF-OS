@@ -33,7 +33,7 @@ void     process_init(void); // Função para inicializar o sistema de processos
 int      process_create(void (*entry)(void)); //  recebe um ponteiro de função que representa o ponto de entrada do processo a ser criado, aloca um novo processo, inicializa seu estado e registradores, e o adiciona à lista de processos prontos para execução, retornando o identificador do processo criado ou -1 em caso de falha
 void     schedule(void); // é chamado pelo timer a cada tick para decidir quem roda.  
 process_t* process_current(void); 
-void     context_switch(uint32_t *old_esp, uint32_t *new_esp);
+uint32_t process_schedule_from_irq(uint32_t current_esp);
 void     yield(void);
 void     process_run(void);
 #endif

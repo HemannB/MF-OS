@@ -3,8 +3,10 @@
 
 #include <stdint.h>
 
-// Função para inicializar o sistema de paginação, configurando as tabelas de páginas e ativando a paginação no processador
-void paging_init(void);
+// Retorna o limite efetivamente mapeado por identity mapping.
+uint32_t paging_init(uint32_t memory_bytes);
+uint32_t paging_identity_limit(void);
 
 
+void paging_map_lfb(void);
 #endif

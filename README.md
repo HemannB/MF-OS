@@ -64,9 +64,8 @@ Não é um OS de produção. É um OS de aprendizado. Construído peça por peç
 
 - PCB (Process Control Block) com pid, estado e stack própria
 - Estados de processo: READY, RUNNING, BLOCKED
-- Round-robin scheduler cooperativo
-- Context switch via stack switching em Assembly
-- `yield()` — cede CPU voluntariamente ao próximo processo
+- Interface de escalonamento cooperativo mantida sobre o frame de interrupção
+- `yield()` — cede CPU voluntariamente através do vetor do timer
 - `process_create()` — cria processos com entry point e stack isolada
 - Validado: dois processos alternando A/B cooperativamente
 
@@ -79,6 +78,10 @@ Não é um OS de produção. É um OS de aprendizado. Construído peça por peç
   - `timer_handler` troca de processo a cada tick
   - Processos interrompidos pelo timer sem precisar de yield()
   - Validado: dois processos alternando sem yield
+
+> O timer permanece somente como contador enquanto o kernel executa o shell ou
+> o Doom. A troca preemptiva é ativada por `process_run()`, evitando que a IRQ0
+> tente escalonar quando não há processos registrados.
 
 ---
 
@@ -118,7 +121,43 @@ Não é um OS de produção. É um OS de aprendizado. Construído peça por peç
   - Base de memória suficiente para carregar o Doom
 
 ---
-## Doom — In Coming...
+
+## Etapa 10 — Doom rodando no MF-0S bare metal
+
+O objetivo desta etapa foi portar o [doomgeneric](https://github.com/ozkl/doomgeneric) para rodar diretamente sobre o kernel MF-0S, sem sistema operacional, sem libc, sem SDL — apenas hardware.
+
+### O que foi implementado
+
+**Kernel:**
+- Identity mapping dimensionado pela memória Multiboot, limitado a 512MB, mais o LFB Bochs VBE em `0xFD000000`
+- Heap dinâmico entre o fim do kernel/módulos GRUB e o limite físico mapeado
+- Scheduler preemptivo ativado sob demanda; o Doom continua como thread única do kernel
+- Driver de teclado com modo dual: terminal (ASCII) e Doom (scancodes raw via `irq1_doom_push`)
+- Driver VGA substituído para Bochs VBE via portas `0x01CE/0x01CF` - LFB linear em `0xFD000000`
+- `terminal_set_graphics()` suprime escrita em `0xB8000` durante o Doom
+- `libc.c` - implementações freestanding de `memcpy`, `memset`, `strcmp`, `strcasecmp`, `strdup`, `strtol`, etc.
+- `doom_shims.c` - shims completos: `malloc`, `printf`, `fopen/fread/fclose`, `fseek/ftell`, `exit`, `abs`, `__divdi3`, `__ctype_toupper_loc`, etc. Todos redirecionados para o kernel
+
+**Port doomgeneric:**
+- Fontes vendorizadas no repositório para permitir builds reproduzíveis; origem e commit documentados em `doomgeneric/UPSTREAM.md`
+- `doomgeneric_mf0s.c` - interface completa: `DG_Init`, `DG_DrawFrame`, `DG_GetKey`, `DG_GetTicksMs`, `DG_SleepMs`
+- `d_main.c` - `D_DoomLoop` com `while(1)` loop, `savegamedir` fixo, sem `M_SaveDefaults`
+- `i_video.c` - `I_VideoBuffer` via `malloc`, `MF0S_FlushPalette` envia paleta PLAYPAL ao DAC VGA
+- `hu_stuff.c` - verificação de lumps ausentes antes de `W_CacheLumpName` (shareware WAD)
+
+**Build:**
+- QEMU com `-vga std -m 512M`
+- `doom1.wad` carregado como módulo GRUB
+- Compilado com `-DCMAP256 -DDOOMGENERIC_RESX=320 -DDOOMGENERIC_RESY=200`
+
+### Como rodar
+
+1. Coloca o `doom1.wad` em `iso/boot/doom1.wad`
+2. `make && make run`
+3. No shell do MF-0S, digita `doom`
+
+![Doom rodando no MF-0S](prints/etapa_doom.png)
+
 ---
 ## Estrutura do projeto
 
@@ -135,11 +174,12 @@ MF-0S/
 │   ├── pic.c / pic.h     # Programmable Interrupt Controller — remapeia IRQs para 0x20-0x2F
 │   ├── isr.c / isr.h     # Interrupt Service Routines — handler do teclado (IRQ1)
 │   ├── isr_asm.asm       # Wrappers Assembly para IRQ0 (timer) e IRQ1 (teclado)
-│   ├── timer.c / timer.h # PIT a 100Hz — contador de ticks e scheduler preemptivo
-│   ├── heap.c / heap.h   # Bump allocator — kmalloc sem free
-│   ├── paging.c / paging.h # Paginação x86 — identity mapping dos primeiros 4MB
-│   ├── process.c / process.h # PCB, scheduler round-robin, yield e context switch
-│   └── switch.asm        # Context switch via stack switching em Assembly
+│   ├── timer.c / timer.h # PIT a 100Hz — ticks e disparo da preempção
+│   ├── heap.c / heap.h   # Bump allocator com limites e metadados de tamanho
+│   ├── paging.c / paging.h # Identity mapping conforme Multiboot + LFB
+│   ├── process.c / process.h # PCB e scheduler round-robin preemptivo
+│   └── multiboot.h       # Estruturas e informações de memória do bootloader
+├── doomgeneric/           # Fontes GPL-2.0 vendorizadas + backend MF-OS
 ├── iso/
 │   └── boot/
 │       └── grub/
@@ -174,12 +214,26 @@ Recomendado usar **WSL2** com Ubuntu e seguir as instruções do Linux.
 # Build completo — gera mf0s.iso
 make
 
+# Valida que o kernel segue o formato Multiboot
+make check
+
+# Inicializa o ISO em modo headless e confirma que o shell foi alcançado
+make smoke
+
 # Rodar no QEMU
 make run
 
 # Limpar arquivos gerados
 make clean
 ```
+
+## Limitações atuais
+
+- Todos os processos executam em ring 0; ainda não há modo usuário ou syscalls.
+- O heap é monotônico: `free()` não devolve memória ao sistema.
+- O ramdisk é somente leitura; buffers de save abertos pelos shims não são persistidos.
+- A paginação usa tabelas estáticas e suporta no máximo 512MB de identity mapping.
+- O scheduler ainda não possui término, bloqueio/desbloqueio ou recuperação de stack.
 
 ---
 

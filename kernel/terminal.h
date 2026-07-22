@@ -18,4 +18,8 @@ void term_print(const char *s);
 void term_println(const char *s);
 void term_print_uint(uint32_t n);
 
+/* modo gráfico: quando ativo (1), suprime escrita em 0xB8000
+   para não interferir com o framebuffer VGA do Doom */
+void terminal_set_graphics(int on);
+
 #endif

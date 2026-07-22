@@ -1,45 +1,58 @@
 #include "paging.h"
 
-#define PAGE_PRESENT    0x1   // página presente na memória
-#define PAGE_WRITABLE   0x2   // página com permissão de escrita
-#define PAGE_SIZE       4096  // tamanho de uma página (4KB)
+#define PAGE_PRESENT  0x1
+#define PAGE_WRITABLE 0x2
+#define PAGE_SIZE     4096
+#define TABLE_SIZE    (1024u * PAGE_SIZE)
+#define MAX_IDENTITY_TABLES 128u
+#define MAX_IDENTITY_BYTES  (MAX_IDENTITY_TABLES * TABLE_SIZE)
+#define FALLBACK_MEMORY_BYTES (16u * 1024u * 1024u)
 
-// Tabelas de páginas alinhadas a 4KB, necessárias para o sistema de paginação funcionar corretamente
-static uint32_t page_directory[1024] __attribute__((aligned(4096))); 
-// A tabela de páginas para o primeiro diretório de páginas, que mapeia os primeiros 4MB de memória física para os primeiros 4MB de memória virtual
-/* 4 page tables = 16MB de memória mapeada */
-static uint32_t page_table_0[1024] __attribute__((aligned(4096))); /* 0MB - 4MB  */
-static uint32_t page_table_1[1024] __attribute__((aligned(4096))); /* 4MB - 8MB  */
-static uint32_t page_table_2[1024] __attribute__((aligned(4096))); /* 8MB - 12MB */
-static uint32_t page_table_3[1024] __attribute__((aligned(4096))); /* 12MB - 16MB */
+static uint32_t page_directory[1024]   __attribute__((aligned(4096)));
+static uint32_t page_tables[MAX_IDENTITY_TABLES][1024] __attribute__((aligned(4096)));
+static uint32_t lfb_table[1024]        __attribute__((aligned(4096)));
+static uint32_t identity_limit = 0;
 
-//Função para inicializar o sistema de paginação, configurando as tabelas de páginas e ativando a paginação no processador
-void paging_init(void) {
-    // mapeia 16MB com identity mapping — 4 page tables de 4MB cada
-    for (int i = 0; i < 1024; i++) {
-        page_table_0[i] = (i * PAGE_SIZE)              | PAGE_PRESENT | PAGE_WRITABLE;
-        page_table_1[i] = (i * PAGE_SIZE + 0x400000)   | PAGE_PRESENT | PAGE_WRITABLE;
-        page_table_2[i] = (i * PAGE_SIZE + 0x800000)   | PAGE_PRESENT | PAGE_WRITABLE;
-        page_table_3[i] = (i * PAGE_SIZE + 0xC00000)   | PAGE_PRESENT | PAGE_WRITABLE;
-    }
+uint32_t paging_init(uint32_t memory_bytes) {
+    if (!memory_bytes) memory_bytes = FALLBACK_MEMORY_BYTES;
+    if (memory_bytes > MAX_IDENTITY_BYTES) memory_bytes = MAX_IDENTITY_BYTES;
+    identity_limit = memory_bytes & ~(PAGE_SIZE - 1);
 
-    // aponta as 4 primeiras entradas do page directory para as page tables
-    page_directory[0] = (uint32_t) page_table_0 | PAGE_PRESENT | PAGE_WRITABLE;
-    page_directory[1] = (uint32_t) page_table_1 | PAGE_PRESENT | PAGE_WRITABLE;
-    page_directory[2] = (uint32_t) page_table_2 | PAGE_PRESENT | PAGE_WRITABLE;
-    page_directory[3] = (uint32_t) page_table_3 | PAGE_PRESENT | PAGE_WRITABLE;
-
-    // zera o resto do page directory 
-    for (int i = 4; i < 1024; i++)
+    for (int i = 0; i < 1024; i++)
         page_directory[i] = 0;
 
-    // carrega CR3 e ativa paginação no CR0 
+    /* Mapeia somente a RAM reportada pelo bootloader, limitada a 512MB. */
+    for (uint32_t t = 0; t < MAX_IDENTITY_TABLES; t++) {
+        for (int i = 0; i < 1024; i++) {
+            uint32_t phys = (t * 1024u + (uint32_t)i) * PAGE_SIZE;
+            page_tables[t][i] = phys < identity_limit
+                ? phys | PAGE_PRESENT | PAGE_WRITABLE
+                : 0;
+        }
+        if (t * TABLE_SIZE < identity_limit)
+            page_directory[t] = (uint32_t)page_tables[t] | PAGE_PRESENT | PAGE_WRITABLE;
+    }
+
+    /* mapeia LFB do Bochs VBE: 0xFD000000 → entry 1012 no page directory */
+    for (int i = 0; i < 1024; i++)
+        lfb_table[i] = (0xFD000000 + i * PAGE_SIZE) | PAGE_PRESENT | PAGE_WRITABLE;
+    page_directory[1012] = (uint32_t)lfb_table | PAGE_PRESENT | PAGE_WRITABLE;
+
     __asm__ volatile (
         "mov %0, %%cr3\n"
         "mov %%cr0, %%eax\n"
         "or $0x80000000, %%eax\n"
         "mov %%eax, %%cr0\n"
-        : : "r"(page_directory)
-        : "eax"
+        : : "r"(page_directory) : "eax"
     );
+
+    return identity_limit;
+}
+
+uint32_t paging_identity_limit(void) {
+    return identity_limit;
+}
+
+void paging_map_lfb(void) {
+    /* já mapeado em paging_init — noop */
 }

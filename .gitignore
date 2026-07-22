@@ -1,21 +1,41 @@
-# Build artifacts
+# ─── Build artifacts ──────────────────────────────
 *.o
+*.obj
+*.a
 *.bin
 *.elf
 *.iso
 *.kernel
 *.img
+*.map
+*.lst
+*.d
 
-# ISO staging (gerado pelo make)
+# ─── ISO staging (gerado pelo make) ───────────────
 iso/boot/*.kernel
 
-# Editor
+# ─── doomgeneric: saída de build ──────────────────
+doomgeneric/doomgeneric/build/
+
+# ─── WADs (arquivos grandes — NUNCA commitar) ─────
+*.wad
+*.wad.*
+
+# ─── Editor / IDE ─────────────────────────────────
 .vscode/ipch/
 .vscode/.browse.VC.db*
+.idea/
 _docs/
+*.swp
+*.swo
 
-# macOS
+# ─── macOS ────────────────────────────────────────
 .DS_Store
 
-# Linux temp files
+# ─── Windows ──────────────────────────────────────
+Thumbs.db
+
+# ─── Linux / temp ─────────────────────────────────
 *~
+*.tmp
+*.log
