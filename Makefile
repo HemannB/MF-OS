@@ -2,9 +2,11 @@ CC  = gcc
 LD  = ld
 AS  = nasm
 
+.DEFAULT_GOAL := all
+
 CFLAGS = -m32 -std=gnu99 -ffreestanding -O2 -Wall -Wextra \
          -fno-builtin -fno-stack-protector -nostdlib -nodefaultlibs \
-         -Ikernel
+         -MMD -MP -Ikernel
 
 DOOM_CFLAGS = $(CFLAGS) -DDOOM_LIBC_SHIMS -DCMAP256 -DDOOMGENERIC_RESX=320 -DDOOMGENERIC_RESY=200 \
               -Idoomgeneric/doomgeneric \
@@ -127,6 +129,10 @@ DOOM_OBJ = \
 OBJ    = $(KERNEL_OBJ) $(DOOM_OBJ)
 KERNEL = mf0s.kernel
 ISO    = mf0s.iso
+WAD    = iso/boot/doom1.wad
+DEPS   = $(OBJ:.o=.d)
+
+-include $(DEPS)
 
 all: $(ISO)
 
@@ -144,9 +150,6 @@ kernel/idt_flush.o: kernel/idt_flush.asm
 kernel/isr_asm.o: kernel/isr_asm.asm
 	$(AS) $(ASFLAGS) $< -o $@
 
-kernel/switch.o: kernel/switch.asm
-	$(AS) $(ASFLAGS) $< -o $@
-
 kernel/%.o: kernel/%.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
@@ -158,9 +161,15 @@ $(KERNEL): $(OBJ) linker.ld
 	$(LD) $(LDFLAGS) -o $@ $(OBJ)
 
 # ── ISO ──────────────────────────────────────────────────────────────
-$(ISO): $(KERNEL)
+$(WAD):
+	@test -f $(WAD) || { echo "error: place a Doom WAD at $(WAD)"; false; }
+
+$(ISO): $(KERNEL) $(WAD) iso/boot/grub/grub.cfg
 	cp $(KERNEL) iso/boot/mf0s.kernel
 	grub-mkrescue -o $(ISO) iso/
+
+check: $(KERNEL)
+	grub-file --is-x86-multiboot $(KERNEL)
 
 # ── QEMU ─────────────────────────────────────────────────────────────
 run: $(ISO)
@@ -168,6 +177,6 @@ run: $(ISO)
 	    -device isa-debug-exit,iobase=0xf4,iosize=0x04 || true
 
 clean:
-	rm -f $(KERNEL_OBJ) $(DOOM_OBJ) $(KERNEL) $(ISO) iso/boot/mf0s.kernel
+	rm -f $(KERNEL_OBJ) $(DOOM_OBJ) $(DEPS) $(KERNEL) $(ISO) iso/boot/mf0s.kernel
 
-.PHONY: all run clean
+.PHONY: all check run clean
