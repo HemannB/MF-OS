@@ -6,6 +6,8 @@ static fs_file_t files[FS_MAX_FILES];
 static int       file_count  = 0;
 static uint32_t  heap_base   = 0;   /* primeiro endereço livre após todos os módulos */
 
+extern uint8_t kernel_end;
+
 /* estrutura da Multiboot info — passada pelo GRUB via EBX */
 typedef struct {
     uint32_t flags;
@@ -27,6 +29,9 @@ typedef struct {
 
 void fs_init(uint32_t multiboot_addr) {
     multiboot_info_t *mb = (multiboot_info_t*) multiboot_addr;
+
+    file_count = 0;
+    heap_base = ((uint32_t)&kernel_end + 0xFFF) & ~0xFFF;
 
     /* verifica se o GRUB carregou algum módulo (bit 3 das flags) */
     if (!(mb->flags & (1 << 3))) return;
@@ -65,8 +70,6 @@ void fs_init(uint32_t multiboot_addr) {
 /* retorna o primeiro endereço livre após todos os módulos GRUB (alinhado a 4KB)
    o heap deve começar aqui para não sobrescrever o WAD */
 uint32_t fs_heap_base(void) {
-    /* fallback: se nenhum módulo foi carregado, começa em 2MB */
-    if (heap_base == 0) return 0x200000;
     return heap_base;
 }
 

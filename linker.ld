@@ -20,4 +20,6 @@ SECTIONS {
         *(COMMON)   /* variáveis globais não inicializadas declaradas sem static */
         *(.bss)     /* dados não inicializados em geral — incluindo nossa stack */
     }
+
+    kernel_end = ALIGN(4K);
 }
