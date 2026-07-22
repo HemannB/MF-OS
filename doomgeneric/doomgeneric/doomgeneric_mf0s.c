@@ -35,8 +35,11 @@ static volatile uint8_t sc_head = 0;
 static volatile uint8_t sc_tail = 0;
 
 void irq1_doom_push(uint8_t sc) {
+    uint8_t next = (uint8_t)((sc_head + 1) % SC_BUFFER_SIZE);
+    if (next == sc_tail) return;
+
     sc_buf[sc_head] = sc;
-    sc_head = (sc_head + 1) % SC_BUFFER_SIZE;
+    sc_head = next;
 }
 
 void DG_Init(void) {
@@ -62,7 +65,7 @@ void DG_SleepMs(uint32_t ms) {
 int DG_GetKey(int *pressed, unsigned char *doomKey) {
     if (sc_head == sc_tail) return 0;
     uint8_t sc  = sc_buf[sc_tail];
-    sc_tail     = (sc_tail + 1) % SC_BUFFER_SIZE;
+    sc_tail     = (uint8_t)((sc_tail + 1) % SC_BUFFER_SIZE);
     uint8_t raw = sc & 0x7F;
     *pressed    = !(sc & 0x80);
     unsigned char dk = (raw < 128) ? sc_to_doom[raw] : 0;
