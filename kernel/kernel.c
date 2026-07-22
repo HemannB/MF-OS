@@ -13,6 +13,7 @@
 #include "tests.h"
 #include "fs.h"
 #include "libc.h"
+#include "multiboot.h"
 
 #define CMD_MAX 128
 
@@ -208,6 +209,7 @@ static void shell_run(void) {
 }
 
 void kernel_main(uint32_t multiboot_info_addr) {
+    multiboot_info_t *boot_info = (multiboot_info_t*)multiboot_info_addr;
     term_init();
 
     gdt_init();
@@ -215,9 +217,12 @@ void kernel_main(uint32_t multiboot_info_addr) {
     pic_init();
 
     fs_init(multiboot_info_addr);
-    heap_init(fs_heap_base(), 0x1000000);
+    uint32_t memory_bytes = multiboot_memory_bytes(boot_info);
+    uint32_t mapped_bytes = paging_init(memory_bytes);
+    uint32_t heap_base = fs_heap_base();
+    uint32_t heap_size = heap_base < mapped_bytes ? mapped_bytes - heap_base : 0;
+    heap_init(heap_base, heap_size);
 
-    paging_init();
     process_init();
 
     isr_init();
@@ -238,13 +243,15 @@ void kernel_main(uint32_t multiboot_info_addr) {
     term_print("] ");
     term_set_color(VGA_LIGHT_GREY, VGA_BLACK);
     term_print("Heap em 0x");
-    uint32_t base = fs_heap_base();
+    uint32_t base = heap_base;
     char hex[9]; hex[8] = '\0';
     for (int i = 0; i < 8; i++) { hex[7-i] = "0123456789ABCDEF"[base & 0xF]; base >>= 4; }
     term_print(hex);
-    term_println(" (+16MB)");
+    term_print(" (+");
+    term_print_uint(heap_size / (1024 * 1024));
+    term_println("MB)");
 
-    boot_msg("Paginacao ativa (512MB + LFB 0xFD000000)");
+    boot_msg("Paginacao ativa (limite Multiboot + LFB 0xFD000000)");
     boot_msg("Timer PIT a 100Hz (preempcao sob demanda)");
     boot_msg("Teclado IRQ1 pronto");
 
