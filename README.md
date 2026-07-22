@@ -139,6 +139,7 @@ O objetivo desta etapa foi portar o [doomgeneric](https://github.com/ozkl/doomge
 - `doom_shims.c` - shims completos: `malloc`, `printf`, `fopen/fread/fclose`, `fseek/ftell`, `exit`, `abs`, `__divdi3`, `__ctype_toupper_loc`, etc. Todos redirecionados para o kernel
 
 **Port doomgeneric:**
+- Fontes vendorizadas no repositório para permitir builds reproduzíveis; origem e commit documentados em `doomgeneric/UPSTREAM.md`
 - `doomgeneric_mf0s.c` - interface completa: `DG_Init`, `DG_DrawFrame`, `DG_GetKey`, `DG_GetTicksMs`, `DG_SleepMs`
 - `d_main.c` - `D_DoomLoop` com `while(1)` loop, `savegamedir` fixo, sem `M_SaveDefaults`
 - `i_video.c` - `I_VideoBuffer` via `malloc`, `MF0S_FlushPalette` envia paleta PLAYPAL ao DAC VGA
@@ -178,6 +179,7 @@ MF-0S/
 │   ├── paging.c / paging.h # Identity mapping conforme Multiboot + LFB
 │   ├── process.c / process.h # PCB e scheduler round-robin preemptivo
 │   └── multiboot.h       # Estruturas e informações de memória do bootloader
+├── doomgeneric/           # Fontes GPL-2.0 vendorizadas + backend MF-OS
 ├── iso/
 │   └── boot/
 │       └── grub/
@@ -214,6 +216,9 @@ make
 
 # Valida que o kernel segue o formato Multiboot
 make check
+
+# Inicializa o ISO em modo headless e confirma que o shell foi alcançado
+make smoke
 
 # Rodar no QEMU
 make run
