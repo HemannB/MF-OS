@@ -16,11 +16,22 @@ void fs_init(uint32_t multiboot_addr) {
     heap_base = ((uint32_t)&kernel_end + 0xFFF) & ~0xFFF;
 
     /* verifica se o GRUB carregou algum módulo (bit 3 das flags) */
-    if (!(mb->flags & MULTIBOOT_INFO_MODULES)) return;
+    if (!(mb->flags & MULTIBOOT_INFO_MODULES) || !mb->mods_addr) return;
 
     multiboot_module_t *mods = (multiboot_module_t*) mb->mods_addr;
 
-    for (uint32_t i = 0; i < mb->mods_count && file_count < FS_MAX_FILES; i++) {
+    for (uint32_t i = 0; i < mb->mods_count; i++) {
+        if (mods[i].mod_end < mods[i].mod_start) continue;
+
+        /* Reserva todos os módulos, mesmo quando a tabela de arquivos lota. */
+        uint32_t mod_end_aligned = mods[i].mod_end > UINT32_MAX - 0xFFF
+            ? UINT32_MAX & ~0xFFFu
+            : (mods[i].mod_end + 0xFFF) & ~0xFFFu;
+        if (mod_end_aligned > heap_base)
+            heap_base = mod_end_aligned;
+
+        if (file_count >= FS_MAX_FILES || !mods[i].cmdline) continue;
+
         /* nome do arquivo vem da cmdline do módulo */
         char *cmdline = (char*) mods[i].cmdline;
 
@@ -40,11 +51,6 @@ void fs_init(uint32_t multiboot_addr) {
         files[file_count].data = (uint8_t*) mods[i].mod_start;
         files[file_count].size = mods[i].mod_end - mods[i].mod_start;
 
-        /* rastreia o endereço mais alto usado pelos módulos, alinhado a 4KB */
-        uint32_t mod_end_aligned = (mods[i].mod_end + 0xFFF) & ~0xFFF;
-        if (mod_end_aligned > heap_base)
-            heap_base = mod_end_aligned;
-
         file_count++;
     }
 }
@@ -57,6 +63,7 @@ uint32_t fs_heap_base(void) {
 
 /* procura um arquivo pelo nome na tabela — retorna NULL se não encontrar */
 fs_file_t *fs_open(const char *name) {
+    if (!name) return 0;
     for (int i = 0; i < file_count; i++) {
         int j = 0;
         while (files[i].name[j] && name[j] && files[i].name[j] == name[j])
@@ -69,8 +76,8 @@ fs_file_t *fs_open(const char *name) {
 
 /* lê 'size' bytes do arquivo a partir do offset — retorna bytes lidos */
 uint32_t fs_read(fs_file_t *f, void *buf, uint32_t size, uint32_t offset) {
-    if (!f || offset >= f->size) return 0;
-    if (offset + size > f->size) size = f->size - offset;
+    if (!f || !buf || offset >= f->size) return 0;
+    if (size > f->size - offset) size = f->size - offset;
     uint8_t *dst = (uint8_t*) buf;
     for (uint32_t i = 0; i < size; i++)
         dst[i] = f->data[offset + i];
