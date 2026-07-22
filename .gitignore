@@ -19,6 +19,7 @@ doomgeneric/doomgeneric/build/
 
 # ─── WADs (arquivos grandes — NUNCA commitar) ─────
 *.wad
+*.wad.*
 
 # ─── Editor / IDE ─────────────────────────────────
 .vscode/ipch/
