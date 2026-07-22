@@ -64,9 +64,8 @@ Não é um OS de produção. É um OS de aprendizado. Construído peça por peç
 
 - PCB (Process Control Block) com pid, estado e stack própria
 - Estados de processo: READY, RUNNING, BLOCKED
-- Round-robin scheduler cooperativo
-- Context switch via stack switching em Assembly
-- `yield()` — cede CPU voluntariamente ao próximo processo
+- Interface de escalonamento cooperativo mantida sobre o frame de interrupção
+- `yield()` — cede CPU voluntariamente através do vetor do timer
 - `process_create()` — cria processos com entry point e stack isolada
 - Validado: dois processos alternando A/B cooperativamente
 
@@ -74,15 +73,15 @@ Não é um OS de produção. É um OS de aprendizado. Construído peça por peç
 
 ## Etapa 6 — O que está implementado
 
-- Scheduler preemptivo via IRQ0 (marco histórico, atualmente desativado)
+- Scheduler preemptivo via IRQ0
   - `irq0_wrapper` salva ESP do processo interrompido
   - `timer_handler` troca de processo a cada tick
   - Processos interrompidos pelo timer sem precisar de yield()
   - Validado: dois processos alternando sem yield
 
-> Estado atual: a integração do Doom substituiu o handler preemptivo por um
-> contador de ticks. O scheduler disponível no código atual é cooperativo via
-> `yield()`; restaurar a preempção sem afetar o Doom permanece pendente.
+> O timer permanece somente como contador enquanto o kernel executa o shell ou
+> o Doom. A troca preemptiva é ativada por `process_run()`, evitando que a IRQ0
+> tente escalonar quando não há processos registrados.
 
 ---
 
@@ -130,9 +129,9 @@ O objetivo desta etapa foi portar o [doomgeneric](https://github.com/ozkl/doomge
 ### O que foi implementado
 
 **Kernel:**
-- Paginação expandida para 512MB + mapeamento do LFB Bochs VBE em `0xFD000000`
-- Heap dinâmico com base calculada após os módulos GRUB (`fs_heap_base()`) - evita sobrescrever o WAD na memória
-- Timer tick-only sem scheduler - o Doom roda como thread única do kernel
+- Identity mapping dimensionado pela memória Multiboot, limitado a 512MB, mais o LFB Bochs VBE em `0xFD000000`
+- Heap dinâmico entre o fim do kernel/módulos GRUB e o limite físico mapeado
+- Scheduler preemptivo ativado sob demanda; o Doom continua como thread única do kernel
 - Driver de teclado com modo dual: terminal (ASCII) e Doom (scancodes raw via `irq1_doom_push`)
 - Driver VGA substituído para Bochs VBE via portas `0x01CE/0x01CF` - LFB linear em `0xFD000000`
 - `terminal_set_graphics()` suprime escrita em `0xB8000` durante o Doom
@@ -174,11 +173,11 @@ MF-0S/
 │   ├── pic.c / pic.h     # Programmable Interrupt Controller — remapeia IRQs para 0x20-0x2F
 │   ├── isr.c / isr.h     # Interrupt Service Routines — handler do teclado (IRQ1)
 │   ├── isr_asm.asm       # Wrappers Assembly para IRQ0 (timer) e IRQ1 (teclado)
-│   ├── timer.c / timer.h # PIT a 100Hz — contador monotônico de ticks
-│   ├── heap.c / heap.h   # Bump allocator — kmalloc sem free
-│   ├── paging.c / paging.h # Paginação x86 — identity mapping de 512MB + LFB
-│   ├── process.c / process.h # PCB e scheduler round-robin cooperativo
-│   └── switch.asm        # Context switch via stack switching em Assembly
+│   ├── timer.c / timer.h # PIT a 100Hz — ticks e disparo da preempção
+│   ├── heap.c / heap.h   # Bump allocator com limites e metadados de tamanho
+│   ├── paging.c / paging.h # Identity mapping conforme Multiboot + LFB
+│   ├── process.c / process.h # PCB e scheduler round-robin preemptivo
+│   └── multiboot.h       # Estruturas e informações de memória do bootloader
 ├── iso/
 │   └── boot/
 │       └── grub/
@@ -213,12 +212,23 @@ Recomendado usar **WSL2** com Ubuntu e seguir as instruções do Linux.
 # Build completo — gera mf0s.iso
 make
 
+# Valida que o kernel segue o formato Multiboot
+make check
+
 # Rodar no QEMU
 make run
 
 # Limpar arquivos gerados
 make clean
 ```
+
+## Limitações atuais
+
+- Todos os processos executam em ring 0; ainda não há modo usuário ou syscalls.
+- O heap é monotônico: `free()` não devolve memória ao sistema.
+- O ramdisk é somente leitura; buffers de save abertos pelos shims não são persistidos.
+- A paginação usa tabelas estáticas e suporta no máximo 512MB de identity mapping.
+- O scheduler ainda não possui término, bloqueio/desbloqueio ou recuperação de stack.
 
 ---
 
