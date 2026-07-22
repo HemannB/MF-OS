@@ -60,10 +60,13 @@ static void splash(void) {
     term_set_color(VGA_DARK_GREY, VGA_BLACK);
     term_println("  ==========================================================================  ");
     term_set_color(VGA_LIGHT_RED, VGA_BLACK);
-    term_println("   __  __ _____       ___  ____  ");
-    term_println("  |  \\/  |  ___|     / _ \\/ ___| ");
-    term_println("  | |\\/| | |_  _____| | | \\___ \\ ");
-    term_println("  |_|  |_|_|          \\___/|____/ ");
+    term_println("    e   e     888'Y88       e88 88e    dP\"8");
+    term_println("   d8b d8b    888 ,'Y      d888 888b  C8b Y");
+    term_println("  e Y8b Y8b   888C8   888 C8888 8888D  Y8b");
+    term_println(" d8b Y8b Y8b  888 \"        Y888 888P  b Y8D");
+    term_println("d888b Y8b Y8b 888           \"88 88\"   8edP");
+    term_putchar('\n');
+    term_putchar('\n');
     term_set_color(VGA_DARK_GREY, VGA_BLACK);
     term_print("  MyFuckingOS  /  v");
     term_print(MFOS_VERSION);
