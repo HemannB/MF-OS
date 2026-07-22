@@ -296,11 +296,12 @@ typedef struct {
     uint8_t   *wbuf;       /* buffer de escrita para save games */
     uint32_t   wsize;
     uint32_t   wcap;
+    int        in_use;
 } kFILE;
 
 /* stdout/stderr — ponteiros não-nulos para o terminal (não usamos FILE real) */
-static kFILE _stdout_file = {0, 0, 1, 0, 0, 0};
-static kFILE _stderr_file = {0, 0, 1, 0, 0, 0};
+static kFILE _stdout_file = {.writable = 1, .in_use = 1};
+static kFILE _stderr_file = {.writable = 1, .in_use = 1};
 void *stdout = &_stdout_file;
 void *stderr = &_stderr_file;
 void *stdin  = 0;
@@ -308,14 +309,21 @@ void *stdin  = 0;
 /* número máximo de arquivos abertos simultaneamente */
 #define MAX_OPEN_FILES 8
 static kFILE open_files[MAX_OPEN_FILES];
-static int   file_slots_used = 0;
 
 static kFILE *alloc_file(void) {
-    if (file_slots_used >= MAX_OPEN_FILES) return 0;
-    return &open_files[file_slots_used++];
+    for (int i = 0; i < MAX_OPEN_FILES; i++) {
+        if (!open_files[i].in_use) {
+            kmemset(&open_files[i], 0, sizeof(open_files[i]));
+            open_files[i].in_use = 1;
+            return &open_files[i];
+        }
+    }
+    return 0;
 }
 
 void* fopen(const char *path, const char *mode) {
+    if (!path || !mode || !mode[0]) return 0;
+
     /* extrai nome do arquivo do path (após última '/') */
     const char *name = path;
     for (const char *p = path; *p; p++)
@@ -332,12 +340,19 @@ void* fopen(const char *path, const char *mode) {
         fp->wcap     = 65536;
         fp->wbuf     = kmalloc(fp->wcap);
         fp->wsize    = 0;
+        if (!fp->wbuf) {
+            kmemset(fp, 0, sizeof(*fp));
+            return 0;
+        }
         return fp;
     }
 
     /* modo leitura — busca no ramdisk */
     fs_file_t *f = fs_open(name);
-    if (!f) { file_slots_used--; return 0; }
+    if (!f) {
+        kmemset(fp, 0, sizeof(*fp));
+        return 0;
+    }
     fp->f        = f;
     fp->pos      = 0;
     fp->writable = 0;
@@ -348,14 +363,19 @@ void* fopen(const char *path, const char *mode) {
 }
 
 int fclose(void *stream) {
-    (void)stream;
-    if (file_slots_used > 0) file_slots_used--;
-    return 0;
+    for (int i = 0; i < MAX_OPEN_FILES; i++) {
+        if (stream == &open_files[i] && open_files[i].in_use) {
+            kmemset(&open_files[i], 0, sizeof(open_files[i]));
+            return 0;
+        }
+    }
+    return -1;
 }
 
 size_t fread(void *buf, size_t sz, size_t n, void *stream) {
     kFILE *fp = (kFILE*)stream;
-    if (!fp || !fp->f) return 0;
+    if (!buf || !sz || !n || !fp || !fp->in_use || !fp->f) return 0;
+    if (n > (size_t)-1 / sz) return 0;
     uint32_t bytes = (uint32_t)(sz * n);
     uint32_t got = fs_read(fp->f, buf, bytes, fp->pos);
     fp->pos += got;
@@ -364,7 +384,8 @@ size_t fread(void *buf, size_t sz, size_t n, void *stream) {
 
 size_t fwrite(const void *buf, size_t sz, size_t n, void *stream) {
     kFILE *fp = (kFILE*)stream;
-    if (!fp) return 0;
+    if (!buf || !sz || !n || !fp || !fp->in_use) return 0;
+    if (n > (size_t)-1 / sz) return 0;
     /* stdout/stderr: imprime no terminal */
     if (fp == &_stdout_file || fp == &_stderr_file) {
         const char *s = (const char*)buf;
@@ -373,26 +394,34 @@ size_t fwrite(const void *buf, size_t sz, size_t n, void *stream) {
     }
     if (!fp->writable || !fp->wbuf) return 0;
     uint32_t bytes = (uint32_t)(sz * n);
-    if (fp->wsize + bytes > fp->wcap) bytes = fp->wcap - fp->wsize;
-    kmemcpy(fp->wbuf + fp->wsize, buf, bytes);
-    fp->wsize += bytes;
+    if (fp->pos >= fp->wcap) return 0;
+    if (bytes > fp->wcap - fp->pos) bytes = fp->wcap - fp->pos;
+    kmemcpy(fp->wbuf + fp->pos, buf, bytes);
     fp->pos   += bytes;
+    if (fp->pos > fp->wsize) fp->wsize = fp->pos;
     return bytes / sz;
 }
 
 int fseek(void *stream, long offset, int whence) {
     kFILE *fp = (kFILE*)stream;
-    if (!fp) return -1;
+    if (!fp || !fp->in_use) return -1;
     uint32_t size = fp->f ? fp->f->size : fp->wsize;
-    if (whence == 0) fp->pos = (uint32_t)offset;           /* SEEK_SET */
-    else if (whence == 1) fp->pos += (uint32_t)offset;     /* SEEK_CUR */
-    else fp->pos = size + (uint32_t)offset;                 /* SEEK_END */
+    int64_t base;
+    if (whence == 0) base = 0;                             /* SEEK_SET */
+    else if (whence == 1) base = fp->pos;                  /* SEEK_CUR */
+    else if (whence == 2) base = size;                     /* SEEK_END */
+    else return -1;
+
+    int64_t new_pos = base + offset;
+    if (new_pos < 0 || new_pos > UINT32_MAX) return -1;
+    if (fp->writable && (uint64_t)new_pos > fp->wcap) return -1;
+    fp->pos = (uint32_t)new_pos;
     return 0;
 }
 
 long ftell(void *stream) {
     kFILE *fp = (kFILE*)stream;
-    if (!fp) return -1;
+    if (!fp || !fp->in_use) return -1;
     return (long)fp->pos;
 }
 
