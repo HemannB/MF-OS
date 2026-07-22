@@ -171,6 +171,20 @@ $(ISO): $(KERNEL) $(WAD) iso/boot/grub/grub.cfg
 check: $(KERNEL)
 	grub-file --is-x86-multiboot $(KERNEL)
 
+smoke: $(ISO)
+	@log=$$(mktemp /tmp/mf0s-smoke.XXXXXX); \
+	status=0; \
+	timeout 10s qemu-system-i386 -vga std -cdrom $(ISO) -m 512M \
+	    -display none -monitor none -serial none -no-reboot -no-shutdown \
+	    -debugcon file:$$log || status=$$?; \
+	if [ $$status -ne 124 ] || ! grep -q "MF-0S> " $$log; then \
+	    echo "smoke test failed; debug log: $$log"; \
+	    cat $$log; \
+	    exit 1; \
+	fi; \
+	rm -f $$log; \
+	echo "smoke test passed: shell prompt reached"
+
 # ── QEMU ─────────────────────────────────────────────────────────────
 run: $(ISO)
 	qemu-system-i386 -vga std -cdrom $(ISO) -m 512M \
@@ -179,4 +193,4 @@ run: $(ISO)
 clean:
 	rm -f $(KERNEL_OBJ) $(DOOM_OBJ) $(DEPS) $(KERNEL) $(ISO) iso/boot/mf0s.kernel
 
-.PHONY: all check run clean
+.PHONY: all check smoke run clean
