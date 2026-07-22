@@ -408,7 +408,7 @@ int fprintf(void *stream, const char *fmt, ...) {
     return r;
 }
 int __fprintf_chk(void *stream, int flag, const char *fmt, ...) {
-    (void)flag; char buf[512]; va_list ap; va_start(ap, fmt);
+    (void)stream; (void)flag; char buf[512]; va_list ap; va_start(ap, fmt);
     int r = kvsnprintf(buf, sizeof(buf), fmt, ap);
     va_end(ap); kputs(buf); return r;
 }
