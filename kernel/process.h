@@ -34,7 +34,6 @@ int      process_create(void (*entry)(void)); //  recebe um ponteiro de função
 void     schedule(void); // é chamado pelo timer a cada tick para decidir quem roda.  
 process_t* process_current(void); 
 uint32_t process_schedule_from_irq(uint32_t current_esp);
-void     context_switch(uint32_t *old_esp, uint32_t *new_esp);
 void     yield(void);
 void     process_run(void);
 #endif

@@ -30,7 +30,6 @@ KERNEL_OBJ = \
     kernel/heap.o \
     kernel/paging.o \
     kernel/process.o \
-    kernel/switch.o \
     kernel/vga13h.o \
     kernel/terminal.o \
     kernel/tests.o \
