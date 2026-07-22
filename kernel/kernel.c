@@ -65,6 +65,7 @@ static void cmd_help(void) {
     term_println("  halt    -- desliga");
     term_println("  uptime  -- ticks desde o boot");
     term_println("  memtest -- testa o heap");
+    term_println("  schedtest -- testa preempcao round-robin");
     term_println("  version -- versao do sistema");
     term_println("  ls      -- lista arquivos no ramdisk");
     term_println("  cat     -- exibe conteudo de um arquivo");
@@ -186,6 +187,7 @@ static void shell_run(void) {
         else if (str_eq(buf, "clear"))   cmd_clear();
         else if (str_eq(buf, "uptime"))  cmd_uptime();
         else if (str_eq(buf, "memtest")) cmd_memtest();
+        else if (str_eq(buf, "schedtest")) test_scheduler();
         else if (str_eq(buf, "version")) cmd_version();
         else if (str_eq(buf, "ls"))      cmd_ls();
         else if (str_eq(buf, "vgatest")) cmd_vgatest();
@@ -243,7 +245,7 @@ void kernel_main(uint32_t multiboot_info_addr) {
     term_println(" (+16MB)");
 
     boot_msg("Paginacao ativa (512MB + LFB 0xFD000000)");
-    boot_msg("Timer PIT a 100Hz (tick-only)");
+    boot_msg("Timer PIT a 100Hz (preempcao sob demanda)");
     boot_msg("Teclado IRQ1 pronto");
 
     term_putchar('\n');

@@ -5,6 +5,9 @@
 #include "timer.h"
 #include "terminal.h"
 
+static volatile uint32_t scheduler_test_a_runs = 0;
+static volatile uint32_t scheduler_test_b_runs = 0;
+
 /* testa o heap alocando dois inteiros e verificando operações básicas */
 void cmd_memtest(void) {
     uint32_t *a = (uint32_t*) kmalloc(sizeof(uint32_t));
@@ -42,14 +45,20 @@ void test_vga13h(void) {
 /* processos de teste para o scheduler */
 void process_a(void) {
     while (1) {
-        term_set_color(VGA_LIGHT_GREEN, VGA_BLACK);
-        term_print("A");
+        scheduler_test_a_runs++;
+        if ((scheduler_test_a_runs & 0xFFFFF) == 0) {
+            term_set_color(VGA_LIGHT_GREEN, VGA_BLACK);
+            term_print("A");
+        }
     }
 }
 
 void process_b(void) {
     while (1) {
-        term_set_color(VGA_LIGHT_CYAN, VGA_BLACK);
-        term_print("B");
+        scheduler_test_b_runs++;
+        if ((scheduler_test_b_runs & 0xFFFFF) == 0) {
+            term_set_color(VGA_LIGHT_CYAN, VGA_BLACK);
+            term_print("B");
+        }
     }
 }
