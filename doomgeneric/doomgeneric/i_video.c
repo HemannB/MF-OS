@@ -39,6 +39,10 @@ rcsid[] = "$Id: i_x.c,v 1.6 1997/02/03 22:45:10 b1 Exp $";
 
 #include "doomgeneric.h"
 
+#ifdef DOOM_LIBC_SHIMS
+#include "vga13h.h"
+#endif
+
 #include <stdbool.h>
 #include <stdlib.h>
 
@@ -495,9 +499,19 @@ void I_CheckIsScreensaver (void)
 {
 }
 
-/* MF-0S: hook de paleta — chamado após I_SetPalette preencher colors[] */
 void MF0S_FlushPalette(void) {
-    /* MF-0S: paleta desabilitada temporariamente para debug */
+#ifdef DOOM_LIBC_SHIMS
+    static uint8_t palette[256 * 3];
+
+    for (int i = 0; i < 256; i++) {
+        palette[i * 3]     = colors[i].r;
+        palette[i * 3 + 1] = colors[i].g;
+        palette[i * 3 + 2] = colors[i].b;
+    }
+
+    vga_set_palette(palette);
+    palette_changed = false;
+#endif
 }
 
 /* MF-0S: acesso direto ao I_VideoBuffer para DG_DrawFrame */
