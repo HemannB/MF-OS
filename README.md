@@ -74,11 +74,15 @@ Não é um OS de produção. É um OS de aprendizado. Construído peça por peç
 
 ## Etapa 6 — O que está implementado
 
-- Scheduler preemptivo via IRQ0
+- Scheduler preemptivo via IRQ0 (marco histórico, atualmente desativado)
   - `irq0_wrapper` salva ESP do processo interrompido
   - `timer_handler` troca de processo a cada tick
   - Processos interrompidos pelo timer sem precisar de yield()
   - Validado: dois processos alternando sem yield
+
+> Estado atual: a integração do Doom substituiu o handler preemptivo por um
+> contador de ticks. O scheduler disponível no código atual é cooperativo via
+> `yield()`; restaurar a preempção sem afetar o Doom permanece pendente.
 
 ---
 
@@ -170,10 +174,10 @@ MF-0S/
 │   ├── pic.c / pic.h     # Programmable Interrupt Controller — remapeia IRQs para 0x20-0x2F
 │   ├── isr.c / isr.h     # Interrupt Service Routines — handler do teclado (IRQ1)
 │   ├── isr_asm.asm       # Wrappers Assembly para IRQ0 (timer) e IRQ1 (teclado)
-│   ├── timer.c / timer.h # PIT a 100Hz — contador de ticks e scheduler preemptivo
+│   ├── timer.c / timer.h # PIT a 100Hz — contador monotônico de ticks
 │   ├── heap.c / heap.h   # Bump allocator — kmalloc sem free
-│   ├── paging.c / paging.h # Paginação x86 — identity mapping dos primeiros 4MB
-│   ├── process.c / process.h # PCB, scheduler round-robin, yield e context switch
+│   ├── paging.c / paging.h # Paginação x86 — identity mapping de 512MB + LFB
+│   ├── process.c / process.h # PCB e scheduler round-robin cooperativo
 │   └── switch.asm        # Context switch via stack switching em Assembly
 ├── iso/
 │   └── boot/
