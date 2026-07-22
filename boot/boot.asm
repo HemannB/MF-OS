@@ -22,7 +22,7 @@ section .bss ; variáveis globais não inicializadas (inicializadas com zero por
 align 16 ; alinhamento de 16 bytes para o stack pointer (ESP) — requisito do protocolo Multiboot
 
 stack_bottom: ; marca o início da pilha do kernel
-    resb 16384 ; reserva 16KB para a pilha do kernel (tamanho arbitrário, pode ser ajustado conforme necessário)
+    resb 262144 ; reserva 256KB para a pilha do kernel e workloads como o Doom
 stack_top: ; marca o topo da pilha do kernel (stack grows downwards)
 
 section .text ; seção de código executável
