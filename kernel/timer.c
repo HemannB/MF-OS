@@ -1,15 +1,14 @@
 #include "timer.h"
 #include "idt.h"
 #include "pic.h"
+#include "process.h"
 
 static volatile uint32_t ticks = 0;
 
-/* handler do timer — apenas incrementa ticks, sem scheduler.
-   O Doom roda como thread única do kernel; context switch aqui
-   causaria saltos para endereços inválidos. */
+/* O scheduler só troca o frame quando process_run() está ativo. */
 uint32_t timer_handler(uint32_t current_esp) {
     ticks++;
-    return current_esp;  /* devolve o mesmo ESP — nenhuma troca de contexto */
+    return process_schedule_from_irq(current_esp);
 }
 
 uint32_t timer_ticks(void) {
