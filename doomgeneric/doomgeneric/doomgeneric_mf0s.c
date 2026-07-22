@@ -6,6 +6,7 @@
 #include "../kernel/terminal.h"
 #include "doomgeneric.h"
 #include "doomkeys.h"
+#include "i_video.h"
 
 static const unsigned char sc_to_doom[128] = {
     [0x01]=KEY_ESCAPE,[0x1C]=KEY_ENTER,[0x39]=' ',
@@ -44,34 +45,9 @@ void DG_Init(void) {
 }
 
 void DG_DrawFrame(void) {
-    extern uint8_t *heap_ptr;
-    extern uint8_t *heap_end;
-    static int fc = 0;
-    fc++;
-    if (fc % 100 == 0) {
-        extern void term_println(const char*);
-        extern void terminal_set_graphics(int);
-        terminal_set_graphics(0);
-        /* imprime uso do heap */
-        terminal_set_graphics(1);
-    }
-    extern unsigned char *I_VideoBuffer;
-    unsigned char *back = vga_get_backbuffer();
-    static unsigned int frames = 0;
-    frames++;
-
-    /* nos primeiros 10 frames: verifica se I_VideoBuffer tem pixels não-zero */
-    if (frames < 10) {
-        /* pinta frame counter como cor de fundo para debug visual */
-        for (int i = 0; i < 320*200; i++)
-            back[i] = (unsigned char)(frames * 25);
-        vga_swap();
-        return;
-    }
-
-    if (I_VideoBuffer) {
-        kmemcpy(back, I_VideoBuffer, 320 * 200);
-    }
+    if (!I_VideoBuffer) return;
+    kmemcpy(vga_get_backbuffer(), I_VideoBuffer,
+            DOOMGENERIC_RESX * DOOMGENERIC_RESY);
     vga_swap();
 }
 
