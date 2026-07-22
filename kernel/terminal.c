@@ -65,6 +65,7 @@ void term_set_color(vga_color_t fg, vga_color_t bg) {
 }
 
 void term_putchar(char c) {
+    outb(0xE9, (uint8_t)c);  /* QEMU/Bochs debug console */
     if (graphics_mode) return;  /* suprimido durante o Doom */
 
     if (c == '\n') {
