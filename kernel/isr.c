@@ -40,8 +40,11 @@ void irq1_handler(void) {
         if (!(sc & 0x80) && sc < sizeof(sc_ascii)) {
             char c = sc_ascii[sc];
             if (c) {
-                kb_buffer[kb_head] = c;
-                kb_head = (kb_head + 1) % KB_BUFFER_SIZE;
+                uint8_t next = (uint8_t)(kb_head + 1);
+                if (next != kb_tail) {
+                    kb_buffer[kb_head] = c;
+                    kb_head = next;
+                }
             }
         }
     }
@@ -52,7 +55,7 @@ void irq1_handler(void) {
 char kb_getchar(void) {
     while (kb_head == kb_tail);
     char c = kb_buffer[kb_tail];
-    kb_tail = (kb_tail + 1) % KB_BUFFER_SIZE;
+    kb_tail = (uint8_t)(kb_tail + 1);
     return c;
 }
 
